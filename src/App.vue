@@ -1,7 +1,7 @@
 <template>
 
 <div id="app">
-  <p>Hello, <span>{{ subject }}</span></p>
+  <cards-list></cards-list>
 </div>
 
 </template>
@@ -9,26 +9,19 @@
 
 <style scoped>
 
-p {
-  & span {
-    color: purple;
-    @media (max-width: 900px) {
-      font-family: Courier New, monospace;
-      color: red;
-    }
-  }
-  font-family: 'Roboto', sans-serif;
-  color: green;
-
-}
-
 </style>
 
 
 <script>
 
+import CardsList from './components/CardsList.vue'
+
 export default {
   name: 'app',
+  components: {
+    CardsList
+  },
+
   data() {
     return {
       subject: 'Drive'
