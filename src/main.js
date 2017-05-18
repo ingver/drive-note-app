@@ -1,3 +1,5 @@
+import 'script-loader!./vendor/gapi.js'
+import 'style-loader!css-loader!postcss-loader!./main.css'
 import Vue from 'vue'
 import App from './App.vue'
 

@@ -15,10 +15,7 @@ const config = {
       {
         test: /\.vue$/,
         exclude: /node_modules/,
-        loader: 'vue-loader',
-        options: {
-          postcss: [require('postcss-cssnext')]
-        }
+        use: 'vue-loader'
       }
     ],
   },
