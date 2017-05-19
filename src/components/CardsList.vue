@@ -131,9 +131,6 @@ export default {
   name: 'cards-list',
   components: {
     Card
-  },
-  data() {
-    return {}
   }
 }
 

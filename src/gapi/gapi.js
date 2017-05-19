@@ -1,5 +1,6 @@
-export default class Gapi {
+import Profile from './profile.js'
 
+export default class Gapi {
   constructor(params) {
     const {
       CLIENT_ID = '',
@@ -27,23 +28,19 @@ export default class Gapi {
 
         ;(function waitGapiLoad() {
           if (gapi === undefined || !('load' in gapi)) {
-            setTimeout(waitGapiLoad, 100);
-            console.log('waiting for gapi');
-            return;
+            setTimeout(waitGapiLoad, 100)
+            console.log('waiting for gapi')
+            return
           }
 
           gapi.load('client:auth2', () => {
-
+            console.log('gapi client load', gapi.client)
             gapi.client.init({
               discoveryDocs: this.DISCOVERY,
               clientId: this.CLIENT_ID,
               scope: this.SCOPES.join(' ')
             }).then(() => {
-
-              //gapi.auth2.getAuthInstance().isSignedIn.listen(this.updateStatus)
-              //this.updateStatus(gapi.auth2.getAuthInstance().isSignedIn.get())
-
-              console.log('gapi client after load:', gapi.client)
+              console.log('gapi client inited')
               resolve()
 
             }, reject)
@@ -51,5 +48,37 @@ export default class Gapi {
 
         }).bind(this)()
       })
+  }
+
+  signIn() {
+    return new Promise(
+      (resolve, reject) => {
+        gapi.auth2.getAuthInstance().signIn()
+          .then(resolve, reject)
+      })
+  }
+
+  signOut() {
+    return new Promise(
+      (resolve, reject) => {
+        gapi.auth2.getAuthInstance().signOut()
+          .then(resolve, reject)
+      })
+  }
+
+  listenUserStatus(listener) {
+    gapi.auth2.getAuthInstance().isSignedIn.listen(listener)
+  }
+
+  isSignedIn() {
+    return gapi.auth2.getAuthInstance().isSignedIn.get()
+  }
+
+  listenCurrentUser(listener) {
+    gapi.auth2.getAuthInstance().currentUser.listen(listener)
+  }
+
+  getUserProfile() {
+    return new Profile(gapi.auth2.getAuthInstance().currentUser.get())
   }
 }
