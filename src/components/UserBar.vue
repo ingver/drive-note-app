@@ -59,20 +59,14 @@
   font-family: 'Roboto', Arial, sans-serif;
   text-transform: uppercase;
   color: rgba(255,255,255,0.95);
-  transition: background-color 0.2s,
-              border 0.2s,
-              color 0.2s,
-              box-shadow 0.2s;
+  transition: all 0.2s;
 
   &:hover {
     border: 1px solid var(--highlight-color);
     box-shadow: 0px 0px 2px rgba(255,255,255,0.7);
     background-color: var(--highlight-color);
     color: white;
-    transition: background-color 0.2s,
-                border 0.2s,
-                color 0.2s,
-                box-shadow 0.2s;
+    transition: all 0.2s;
   }
 
   @media (max-width: 700px) {

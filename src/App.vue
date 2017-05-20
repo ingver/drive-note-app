@@ -35,7 +35,6 @@
 
 <script>
 
-import marked from 'marked'
 import * as config from './config.js'
 import Gapi from './gapi/gapi.js'
 import Profile from './gapi/profile.js'
@@ -81,16 +80,11 @@ export default {
       .catch(err => console.error('gapi couldn\'t load client:', err))
   },
 
-  mounted() {
-    console.log(marked('I am using __markdown__.'))
-  },
-
   methods: {
     signIn() {
       this.gapi.signIn()
         .then(user => {
           console.log('successfully signed in')
-          //this.profile = user.getBasicProfile()
         })
         .catch(err => console.error('failed to sign in:', err))
     },

@@ -31,8 +31,7 @@
   background-position: center;
   background-size: 100%;
   overflow: hidden;
-  transition: background-size 0.3s,
-              box-shadow 0.3s;
+  transition: all 0.3s;
 
   &::before {
     z-index: 1;
@@ -43,18 +42,17 @@
     left: 0;
     top: 0;
     background-color: rgba(0,0,0,0);
-    transition: background-color 0.3s;
+    transition: all 0.3s;
   }
 
   &:hover {
     background-size: 120%;
     box-shadow: 0 0 4px 0px rgba(0,0,0,0.3);
-    transition: background-size 0.3s
-                box-shadow 0.3s;
+    transition: all 0.3s;
 
     &::before {
       background-color: rgba(0,0,0,0.3);
-      transition: background-color 0.3s;
+      transition: all 0.3s;
     }
 
     & .card-menu-button {
