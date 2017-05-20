@@ -16,11 +16,6 @@
 
 <style scoped>
 
-#app {
-  height: 100vh;
-  background-color: #f0f0f0;
-}
-
 .user-bar {
   position: fixed;
   top: 0;

@@ -13,7 +13,7 @@
 
 :root {
   --big-vp-justify: flex-start;
-  --big-vp-user-bar-padding: 5px 15px;
+  --big-vp-user-bar-padding: 5px 30px;
   --med-vp-user-bar-padding: 5px 10px;
   --small-vp-justify: space-between;
   --small-vp-user-bar-padding: 5px 5px;

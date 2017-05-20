@@ -16,6 +16,7 @@
     "url": "https://github.com/ingver/drive-note-app/issues"
   },
   "devDependencies": {
+    "autosize": "^3.0.21",
     "babel-core": "^6.24.1",
     "babel-loader": "^7.0.0",
     "babel-preset-env": "^1.4.0",

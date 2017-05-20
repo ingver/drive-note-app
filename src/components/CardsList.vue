@@ -5,7 +5,6 @@
     <h2 class="list-title">
       {{ listData.title }}
     </h2>
-
     <div class="content-view-group"
         v-if="!editable">
       <div class="content-view"
@@ -19,11 +18,12 @@
 
     <div class="content-edit-group"
        v-if="editable">
-      <textarea class="content-edit"
+      <autosize-textarea class="content-edit"
         v-autofocus
-        v-model="listData.content"
+        :content="listData.content"
+        @input="handleEdit"
         @keyup.esc="endEdit">
-      </textarea>
+      </autosize-textarea>
       <button class="button"
           @click="endEdit">
         Save
@@ -53,7 +53,7 @@
   width: 100%;
   min-height: 100px;
   margin: 0 auto;
-  padding: 15px;
+  padding: 30px;
   background-color: transparent;
   font-family: var(--font);
 
@@ -191,12 +191,15 @@
 <script>
 
 import marked from 'marked'
+import autosize from 'autosize'
 import Card from './Card.vue'
+import AutosizeTextarea from './AutosizeTextarea.vue'
 
 export default {
   name: 'cards-list',
   components: {
-    Card
+    Card,
+    AutosizeTextarea
   },
   props: ['listData'],
 
@@ -214,19 +217,23 @@ export default {
 
   methods: {
     editContent() {
-      this.editable = true;
+      this.editable = true
+    },
+
+    handleEdit(newContent) {
+      this.listData.content = newContent
     },
 
     endEdit() {
-      this.editable = false;
-      this.listData.content = this.listData.content.trim();
+      this.editable = false
+      this.listData.content = this.listData.content.trim()
     }
   },
 
   directives: {
     autofocus: {
       inserted(el) {
-        el.focus();
+        el.focus()
       }
     }
   }
