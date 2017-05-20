@@ -3,8 +3,8 @@
 <div class="card" :style="cardStyles">
   <h3 class="card-title">{{ title }}</h3>
   <button class="card-menu-button"></button>
-  <div class="card-description">
-    {{ description }}
+  <div class="card-content">
+    {{ content }}
   </div>
 </div>
 
@@ -131,7 +131,7 @@
   }
 }
 
-.card-description {
+.card-content {
   width: 100%;
   height: 30%;
   padding: 10px;
@@ -146,6 +146,8 @@
   @media (max-width: 300px) {
     display: none;
   }
+
+  @apply --markdown-theme;
 }
 
 </style>
@@ -153,11 +155,13 @@
 
 <script>
 
+import marked from 'marked'
+
 export default {
   name: 'card',
   props: {
     title: String,
-    description: String,
+    content: String,
     bgImg: String
   },
 

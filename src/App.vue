@@ -7,13 +7,19 @@
     @sign-in="signIn"
     @sign-out="signOut">
   </user-bar>
-  <cards-list class="cards-list"></cards-list>
+  <cards-list class="cards-list"
+    :list-data="currentList"></cards-list>
 </div>
 
 </template>
 
 
 <style scoped>
+
+#app {
+  height: 100vh;
+  background-color: #f0f0f0;
+}
 
 .user-bar {
   position: fixed;
@@ -52,7 +58,38 @@ export default {
     return {
       signedIn: false,
       gapi: new Gapi(config),
-      profile: null
+      profile: null,
+      currentList: {
+        bgImg: 'http://unsplash.com/photos/ima2rtH8rr4/download',
+        title: 'List Title',
+        content: 'The *description* of a **List** will be here',
+        items: [{
+          id: 1,
+          bgImg: 'https://images.unsplash.com/photo-1473874629247-1bc73eda6f98?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=500&h=300&fit=crop&s=0765dd6291bdca493cb34ebb22338707',
+          title: 'Alpinism',
+          content: 'Short content of a card'
+        }, {
+          id: 2,
+          bgImg: 'https://images.unsplash.com/photo-1475474369946-72bb667aae19?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=500&h=300&fit=crop&s=1101d276fa2a1e5db7742f591d0fdcc2',
+          title: 'Recipes',
+          content: 'Short content of a card'
+        }, {
+          id: 3,
+          bgImg: 'https://images.unsplash.com/photo-1432836689000-d6a3632db7ab?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=500&h=300&fit=crop&s=5df91ad84730a5e71a4f329ef6e541f1',
+          title: 'Architecture',
+          content: 'Short content of a card'
+        }, {
+          id: 4,
+          bgImg: 'https://media.giphy.com/media/xUA7bhI09WU14GI6kg/giphy.gif',
+          title: 'Pictures',
+          content: 'Short content of a card'
+        }, {
+          id: 5,
+          bgImg: 'http://www.bestprintingonline.com/help_resources/Image/Ducky_Head_Web_Low-Res.jpg',
+          title: 'Ducks',
+          content: 'Short content of a card'
+        }]
+      }
     }
   },
 
