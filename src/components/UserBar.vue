@@ -1,9 +1,9 @@
 <template>
 
 <div class="user-bar">
-  <img v-if="signedIn" class="avatar" :src="profileImg">
   <button v-if="signedIn" class="button" @click="signOut">Sign Out</button>
   <button v-else class="button" @click="signIn">Sign In</button>
+  <img v-if="signedIn" class="avatar" :src="profileImg">
 </div>
 
 </template>
@@ -11,29 +11,36 @@
 
 <style scoped>
 
-.avatar {
-  width: 40px;
-  height: 40px;
-
-  border-radius: 50%;
-  background-color: #ccc;
+:root {
+  --big-vp-justify: flex-start;
+  --big-vp-user-bar-padding: 5px 15px;
+  --med-vp-user-bar-padding: 5px 10px;
+  --small-vp-justify: space-between;
+  --small-vp-user-bar-padding: 5px 5px;
+  --main-color: #28bb6a;
+  --highlight-color: #39e687;
 }
 
 .user-bar {
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: var(--big-vp-justify);
   align-items: center;
   width: 100%;
   height: 60px;
-  padding: 5px;
+  padding: var(--big-vp-user-bar-padding);
   top: 0;
-  background-color: #28bb6a;
+  background-color: var(--main-color);
   box-shadow: 0px 0px 3px 2px rgba(0,0,0,0.3);
 
+  @media (max-width: 900px) {
+    padding: var(--med-vp-user-bar-padding);
+  }
+
   @media (max-width: 700px) {
+    justify-content: var(--small-vp-justify);
     height: 46px;
-    padding: 4px;
+    padding: var(--small-vp-user-bar-padding);
   }
 }
 
@@ -58,9 +65,9 @@
               box-shadow 0.2s;
 
   &:hover {
-    border: 1px solid #39e687;
+    border: 1px solid var(--highlight-color);
     box-shadow: 0px 0px 2px rgba(255,255,255,0.7);
-    background-color: #39e687;
+    background-color: var(--highlight-color);
     color: white;
     transition: background-color 0.2s,
                 border 0.2s,
@@ -75,6 +82,15 @@
     font-size: 18px;
     line-height: 30px;
   }
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  margin: 5px 10px;
+
+  border-radius: 50%;
+  background-color: #ccc;
 }
 
 </style>
