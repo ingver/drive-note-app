@@ -1,7 +1,15 @@
 <template>
 
 <div class="list-view">
-  <div class="content-wrapper">
+  <div v-if="!signedIn" class="sign-in-banner banner">
+    <p class="notification">You must signed into your Google Account to use the app!</p>
+  </div>
+
+  <div v-else-if="listData === null" class="loading-banner banner">
+    <p class="notification">Loading...</p>
+  </div>
+
+  <div v-else class="content-wrapper">
     <h2 class="title">
       {{ listData.title }}
     </h2>
@@ -29,15 +37,16 @@
         Save
       </button>
     </div>
+
+    <div class="cards">
+      <card v-for="item in listData.items" :key="item.id"
+        :title="item.title"
+        :content="item.content"
+        :bg-img="item.bgImg">
+      </card>
+    </div>
   </div>
 
-  <div class="cards">
-    <card v-for="item in listData.items" :key="item.id"
-      :title="item.title"
-      :content="item.content"
-      :bg-img="item.bgImg">
-    </card>
-  </div>
 </div>
 
 </template>
@@ -186,6 +195,21 @@
     flex-direction: column;
   }
 }
+
+.banner {
+  display: flex;
+  justify-content: center;
+}
+
+.notification {
+  text-align: center;
+  font-size: 32px;
+  color: rgba(0,0,0,0.25);
+
+  @media (max-width: 700px) {
+    font-size: 24px;
+  }
+}
 </style>
 
 
@@ -202,7 +226,10 @@ export default {
     Card,
     AutosizeTextarea
   },
-  props: ['listData'],
+  props: {
+    listData: Object,
+    signedIn: Boolean
+  },
 
   data() {
     return {
