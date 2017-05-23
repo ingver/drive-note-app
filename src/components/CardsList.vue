@@ -46,7 +46,8 @@
 <style scoped>
 
 :root {
-  --font: 'Roboto', Arial, sans-serif;
+  --text-font: 'Source Sans Pro', Arial, sans-serif;
+  --button-font: 'Roboto', Arial, sans-serif;
 }
 
 .cards-list {
@@ -55,7 +56,7 @@
   margin: 0 auto;
   padding: 30px;
   background-color: transparent;
-  font-family: var(--font);
+  font-family: var(--text-font);
 
   @media (max-width: 900px) {
     padding: 10px;
@@ -77,7 +78,7 @@
   border-radius: 2px;
   line-height: 26px;
   font-size: 26px;
-  font-family: Arial, sans-serif;
+  font-family: var(--text-font);
   font-weight: bold;
   color: #666;
   word-wrap: break-word;
@@ -104,7 +105,7 @@
   padding: 5px;
   border: 1px solid rgba(0,0,0,0.3);
   border-radius: 3px;
-  font-family: inherit;
+  font-family: var(--button-font);
   text-transform: uppercase;
   outline: none;
 

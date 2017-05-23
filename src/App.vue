@@ -16,6 +16,11 @@
 
 <style scoped>
 
+:root {
+  --text-font: 'Source Sans Pro', Arial, sans-serif;
+  --button-font: 'Roboto', Arial, sans-serif;
+}
+
 .user-bar {
   position: fixed;
   top: 0;
@@ -61,7 +66,7 @@ export default {
         items: [{
           id: 1,
           bgImg: 'https://images.unsplash.com/photo-1473874629247-1bc73eda6f98?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=500&h=300&fit=crop&s=0765dd6291bdca493cb34ebb22338707',
-          title: 'Alpinism',
+          title: 'Альпинизм',
           content: 'Short content of a card'
         }, {
           id: 2,

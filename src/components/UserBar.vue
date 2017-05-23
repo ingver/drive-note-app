@@ -19,6 +19,7 @@
   --small-vp-user-bar-padding: 5px 5px;
   --main-color: #28bb6a;
   --highlight-color: #39e687;
+  --button-font: 'Roboto', Arial, sans-serif;
 }
 
 .user-bar {
@@ -56,7 +57,7 @@
   font-size: 24px;
   line-height: 40px;
   vertical-align: middle;
-  font-family: 'Roboto', Arial, sans-serif;
+  font-family: var(--button-font);
   text-transform: uppercase;
   color: rgba(255,255,255,0.95);
   transition: all 0.2s;
