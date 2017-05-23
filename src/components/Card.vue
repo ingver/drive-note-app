@@ -1,9 +1,9 @@
 <template>
 
 <div class="card" :style="cardStyles">
-  <h3 class="card-title">{{ title }}</h3>
-  <button class="card-menu-button"></button>
-  <div class="card-content">
+  <h3 class="title">{{ title }}</h3>
+  <button class="menu-button"></button>
+  <div class="content">
     {{ content }}
   </div>
 </div>
@@ -55,7 +55,7 @@
       transition: all 0.3s;
     }
 
-    & .card-menu-button {
+    & .menu-button {
       box-shadow: 0 0 3px 1px rgba(255,255,255,0.8);
       &:hover {
         background-color: rgba(0,0,0,0.5);
@@ -82,8 +82,8 @@
   }
 }
 
-.card-title {
-  width: 50%;
+.title {
+  width: 70%;
   margin: 0;
   padding: 3px 5px;
   position: relative;
@@ -97,7 +97,7 @@
   background-image: linear-gradient(to right, rgba(0,0,0,0.4), rgba(0,0,0,0.4) 50%, rgba(0,0,0,0));
 }
 
-.card-menu-button {
+.menu-button {
   height: 26px;
   width: 26px;
   position: relative;
@@ -131,7 +131,7 @@
   }
 }
 
-.card-content {
+.content {
   width: 100%;
   height: 30%;
   padding: 10px;

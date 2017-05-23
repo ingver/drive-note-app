@@ -1,8 +1,8 @@
 <template>
 
-<div class="cards-list">
+<div class="list-view">
   <div class="content-wrapper">
-    <h2 class="list-title">
+    <h2 class="title">
       {{ listData.title }}
     </h2>
     <div class="content-view-group"
@@ -50,7 +50,7 @@
   --button-font: 'Roboto', Arial, sans-serif;
 }
 
-.cards-list {
+.list-view {
   width: 100%;
   min-height: 100px;
   margin: 0 auto;
@@ -71,7 +71,7 @@
   position: relative;
 }
 
-.list-title {
+.title {
   display: block;
   margin: 10px;
   padding: 3px 2px;
@@ -197,7 +197,7 @@ import Card from './Card.vue'
 import AutosizeTextarea from './AutosizeTextarea.vue'
 
 export default {
-  name: 'cards-list',
+  name: 'list-view',
   components: {
     Card,
     AutosizeTextarea

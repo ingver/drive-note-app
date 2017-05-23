@@ -7,8 +7,8 @@
     @sign-in="signIn"
     @sign-out="signOut">
   </user-bar>
-  <cards-list class="cards-list"
-    :list-data="currentList"></cards-list>
+  <list-view class="list-view"
+    :list-data="currentList"></list-view>
 </div>
 
 </template>
@@ -27,7 +27,7 @@
   z-index: 5;
 }
 
-.cards-list {
+.list-view {
   position: relative;
   top: 60px;
 
@@ -45,12 +45,12 @@ import * as config from './config.js'
 import Gapi from './gapi/gapi.js'
 import Profile from './gapi/profile.js'
 import UserBar from './components/UserBar.vue'
-import CardsList from './components/CardsList.vue'
+import ListView from './components/ListView.vue'
 
 export default {
   name: 'app',
   components: {
-    CardsList,
+    ListView,
     UserBar
   },
 
