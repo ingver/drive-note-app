@@ -2,7 +2,7 @@
 
 <div class="list-view">
   <div v-if="!signedIn" class="sign-in-banner banner">
-    <p class="notification">You must signed into your Google Account to use the app!</p>
+    <p class="notification">You must be signed into your Google Account to use the app!</p>
   </div>
 
   <div v-else-if="listData === null" class="loading-banner banner">

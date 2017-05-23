@@ -81,4 +81,63 @@ export default class Gapi {
   getUserProfile() {
     return new Profile(gapi.auth2.getAuthInstance().currentUser.get())
   }
+
+  listFiles(query) {
+    return new Promise(
+      (resolve, reject) => {
+        gapi.client.drive.files.list(query)
+          .then(resolve, reject)
+      })
+  }
+
+  createFile({ name, parents, content, mimeType, spaces }) {
+    const boundary = '-------314159265358979323846'
+    const delimiter = `\r\n--${boundary}\r\n`
+    const closeDelim = `\r\n--${boundary}--`
+
+    const metadata = {
+      name,
+      parents,
+      contentType: mimeType
+      //parents: ['appDataFolder']
+    }
+
+    const requestBody =
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      `Content-Type: ${mimeType}\r\n\r\n` +
+      content +
+      closeDelim
+
+    console.log('creating file')
+    return new Promise(
+
+      (resolve, reject) => {
+        gapi.client.request({
+          path: '/upload/drive/v3/files/',
+          method: 'POST',
+          params: {
+            uploadType: 'multipart'
+          },
+          headers: {
+            'Content-Type': `multipart/related; boundary="${boundary}"`
+          },
+          body: requestBody
+        }).then(resolve, reject)
+      })
+  }
+
+  createFolder({ name, parents = '' }) {
+    return new Promise(
+      (resolve,reject) => {
+        gapi.client.drive.files.create({
+          name,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents,
+          fields: 'id'
+        }).then(resolve, reject)
+      })
+  }
 }

@@ -73,7 +73,7 @@ export default {
         // assign initial values
         this.signedIn = this.gapi.isSignedIn()
         this.profile = this.gapi.getUserProfile()
-        this.loadData()
+        this.updateList()
         // register listeners
         this.gapi.listenUserStatus(this.changeStatus)
         this.gapi.listenCurrentUser(this.changeProfile)
@@ -105,55 +105,143 @@ export default {
       this.profile = new Profile(user)
     },
 
-    loadData() {
+    updateList() {
       console.log('invoked loadData...')
       if (this.signedIn) {
         console.log('Loading some data...')
-        setTimeout(() => {
-          this.currentList = {
-            bgImg: 'http://unsplash.com/photos/ima2rtH8rr4/download',
-            title: 'List Title',
-            content: 'The *description* of a **List** will be here',
-            items: [{
-              id: 1,
-              bgImg: 'https://images.unsplash.com/photo-1473874629247-1bc73eda6f98?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=500&h=300&fit=crop&s=0765dd6291bdca493cb34ebb22338707',
-              title: 'Альпинизм',
-              content: 'Short content of a card'
-            }, {
-              id: 2,
-              bgImg: 'https://images.unsplash.com/photo-1475474369946-72bb667aae19?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=500&h=300&fit=crop&s=1101d276fa2a1e5db7742f591d0fdcc2',
-              title: 'Recipes',
-              content: 'Short content of a card'
-            }, {
-              id: 3,
-              bgImg: 'https://images.unsplash.com/photo-1432836689000-d6a3632db7ab?ixlib=rb-0.3.5&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=500&h=300&fit=crop&s=5df91ad84730a5e71a4f329ef6e541f1',
-              title: 'Architecture',
-              content: 'Short content of a card'
-            }, {
-              id: 4,
-              bgImg: 'https://media.giphy.com/media/xUA7bhI09WU14GI6kg/giphy.gif',
-              title: 'Pictures',
-              content: 'Short content of a card'
-            }, {
-              id: 5,
-              bgImg: 'http://www.bestprintingonline.com/help_resources/Image/Ducky_Head_Web_Low-Res.jpg',
-              title: 'Ducks',
-              content: 'Short content of a card'
-            }]
-          }
-        }, 2000)
       } else {
         console.log('not signed in')
         this.currentList = null
       }
+    },
+
+    initDriveStorage() {
+      console.log('initializing drive storage')
+
+      // check for app config file existence
+      this.gapi.listFiles({
+        q: `name = 'config.json' and 'appDataFolder' in parents`,
+        spaces: 'appDataFolder',
+        fields: 'files(id,name,parents)',
+      }).then(response => {
+        console.log('response for config.json', response.result)
+        console.log('response.result.files.length', response.result.files.length)
+
+        /*
+         * no config file, create one
+         */
+        if (response.result.files.length === 0) {
+
+          /*
+           * find `Apps` folder
+           */
+          return this.gapi.listFiles({
+            q: `name = 'Apps' and 'root' in parents`,
+            fields: 'files(id,name,parents,trashed)'
+          }).then(listOfAppsFolders => {
+            const files = listOfAppsFolders.result.files
+            console.log('list of Apps folders:', files)
+
+            let i = 0
+            for (; i < files.length; ++i) {
+              if (!files[i].trashed) {
+                break
+              }
+            }
+
+            // if no folder found, than create it
+            if (files.length === 0 || i === files.length) {
+              if (files.length === 0) {
+                console.log('No `App` folders')
+              } else {
+                console.log('no not-trashed `Apps` folders')
+              }
+              return this.gapi.createFolder({ name: 'Apps' })
+                .then(newFolder => newFolder.result)
+            }
+
+            // return found `Apps` folder otherwise
+            return files[i]
+
+          }).then(appsFolder => {
+            const { id } = appsFolder
+            console.log('Chosen Apps folder ID:', id)
+
+            /*
+             * find `drive-note-app` folder
+             */
+            return this.gapi.listFiles({
+              q: `name = 'drive-note-app' and '${id}' in parents`,
+              fields: 'files(id, name, parents, trashed)'
+            }).then(list => ({list, id}))
+
+          }).then(({list, id}) => {
+            const files = list.result.files
+            console.log('list of drive-note-app folders inside Apps:', files)
+
+            let i = 0
+            for (; i < files.length; ++i) {
+              if (!files[i].trashed) {
+                break
+              }
+            }
+
+            // if no folder found, than create it
+            if (files.length === 0 || i === files.length) {
+              if (files.length === 0) {
+                console.log('No `drive-note-app` folders')
+              } else {
+                console.log('no not-trashed `drive-note-app` folders')
+              }
+              return this.gapi.createFolder({
+                name: 'drive-note-app',
+                parents: [ id ]
+              }).then(newFolder => newFolder.result)
+            }
+
+            // return found `drive-note-app` folder otherwise
+            return files[i]
+
+          }).then(driveNoteAppFolder => {
+            const { id } = driveNoteAppFolder
+            console.log('Chosen `drive-note-app` folder ID:', id)
+            /*
+             * find `drive-note-app` folder
+             */
+            return this.gapi.listFiles({
+              q: `name = 'drive-note-app' and '${id}' in parents`
+            }).then(list => ({list, id}))
+          }).then(({ list, id }) => {
+            const files = list.result.files
+            console.log('list of files in drive-note-app:', files)
+
+            /*
+             * create config file
+             */
+            return this.gapi.createFile({
+                name: 'config.json',
+                mimeType: 'application/json',
+                parents: ['appDataFolder'],
+                content: `{ "appFolderId": "${id}" }`,
+                fields: 'id, kind, mimeType, name, parents'
+              }).then(response => response.result)
+          })
+        }
+        return response.result
+      }).then(result => {
+        console.log('result (config.json):', result)
+
+      }).catch(err => console.error)
     }
+
   },
 
   watch: {
     signedIn: function() {
       if (this.signedIn) {
-        this.loadData()
+        this.initDriveStorage()
       }
+      //this.updateList()
     }
   }
 }
