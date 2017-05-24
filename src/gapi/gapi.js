@@ -1,6 +1,7 @@
+import * as config from './config.js'
 import Profile from './profile.js'
 
-export default class Gapi {
+class Gapi {
   constructor(params) {
     const {
       CLIENT_ID = '',
@@ -91,7 +92,7 @@ export default class Gapi {
       })
   }
 
-  constructMiltipartRequestBody({ name, parents, mimeType, content }) {
+  static constructMiltipartRequestBody({ name, parents, mimeType, content }) {
     const boundary = '-------314159265358979323846'
     const delimiter = `\r\n--${boundary}\r\n`
     const closeDelim = `\r\n--${boundary}--`
@@ -128,7 +129,7 @@ export default class Gapi {
   }
 
   uploadFile({ name, parents, mimeType, content }) {
-    const requestBody = this.constructMiltipartRequestBody({ name, parents, mimeType, content })
+    const requestBody = Gapi.constructMiltipartRequestBody({ name, parents, mimeType, content })
 
     const requestData = Object.assign(
       {},
@@ -146,7 +147,7 @@ export default class Gapi {
   }
 
   updateFileContent({ id, name, mimeType, content }) {
-    const requestBody = this.constructMiltipartRequestBody({ name, mimeType, content })
+    const requestBody = Gapi.constructMiltipartRequestBody({ name, mimeType, content })
 
     const requestData= Object.assign(
       {},
@@ -163,7 +164,8 @@ export default class Gapi {
       })
   }
 
-  getFile({ fileId = '', trashed = false }) {
+  getFileMetadata({ fileId = '', trashed = false, fields = ['id', 'name', 'trashed', 'parents'] }) {
+    console.log('getFileMetadata: fileId=', fileId, ' trashed=', trashed, ' fields=', fields)
     if (fileId === '') {
       throw new Error('fileId empty')
     }
@@ -172,12 +174,12 @@ export default class Gapi {
         gapi.client.drive.files.get(
           {
             fileId,
-            fields: 'id, name, trashed, parents'
+            fields: fields.join(',')
           })
           .then(response => {
             const file = response.result
             if (file.trashed !== trashed) {
-              reject(new Error(`Requested file ${ !file.trashed ? 'NOT ' : '' }trashed`))
+              reject(new Error(`Requested file ${ trashed ? 'NOT ' : '' }trashed`))
             }
 
             resolve(file)
@@ -269,3 +271,5 @@ export default class Gapi {
     return folderPromise
   }
 }
+
+export default new Gapi(config)

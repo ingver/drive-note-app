@@ -42,8 +42,8 @@
 
 <script>
 
-import * as config from './config.js'
 import Gapi from './gapi/gapi.js'
+import * as Drive from './gapi/drive-utils.js'
 import Profile from './gapi/profile.js'
 import UserBar from './components/UserBar.vue'
 import ListView from './components/ListView.vue'
@@ -58,7 +58,6 @@ export default {
   data() {
     return {
       signedIn: false,
-      gapi: new Gapi(config),
       profile: null,
       currentList: null,
       config: null
@@ -66,25 +65,27 @@ export default {
   },
 
   created() {
-    this.gapi.loadClient()
+    console.log(Gapi)
+    Gapi.loadClient()
       .then(() => {
         console.log('gapi loaded client')
       })
       .then(() => {
         // assign initial values
-        this.signedIn = this.gapi.isSignedIn()
-        this.profile = this.gapi.getUserProfile()
-        this.updateList()
+        this.signedIn = Gapi.isSignedIn()
+        this.profile = Gapi.getUserProfile()
         // register listeners
-        this.gapi.listenUserStatus(this.changeStatus)
-        this.gapi.listenCurrentUser(this.changeProfile)
+        Gapi.listenUserStatus(this.changeStatus)
+        Gapi.listenCurrentUser(this.changeProfile)
+
+        window.addEventListener('hashchange', this.updateList.bind(this))
       })
       .catch(err => console.error('gapi couldn\'t load client:', err))
   },
 
   methods: {
     signIn() {
-      this.gapi.signIn()
+      Gapi.signIn()
         .then(user => {
           console.log('successfully signed in')
         })
@@ -92,7 +93,7 @@ export default {
     },
 
     signOut() {
-      this.gapi.signOut()
+      Gapi.signOut()
         .then(() => console.log('successfulle signed out'))
     },
 
@@ -109,167 +110,69 @@ export default {
     updateList() {
       console.log('invoked loadData...')
       if (this.signedIn) {
-        console.log('Loading some data...')
+        console.log('Fetching data...')
+
+        console.log('hash:', window.location.hash)
+        let listId = window.location.hash.slice(1)
+        if (listId === '') {
+          listId = this.config.appFolderId
+        }
+        console.log('listId:', listId)
+
+        let listData = {}
+
+        Gapi.getFileMetadata(
+          {
+            fileId: listId,
+            fields: ['name', 'parents', 'trashed']
+          })
+          .catch(err => {
+            console.error(`Cannot find folder with id ${listId}:`, err)
+            throw err
+          })
+          .then(listFolder => {
+            console.log('got listFolder:', listFolder)
+            listData.title = listFolder.name
+            listData.parents = listFolder.parents
+          })
+          .then(() => {
+            return Gapi.listFiles(
+              {
+                q: `'${listId}' in parents and trashed = false`,
+                fields: 'files(id, name, trashed, parents)'
+              })
+              .catch(err => {
+                console.error(`Couldn't get children of list with id ${listId}`, err)
+              })
+          })
+          .then(itemsList => {
+            console.log('items list:', itemsList.result)
+          })
+          .catch(err => {
+            console.error('failed to update the list:', err)
+          })
+
       } else {
         console.log('not signed in')
         this.currentList = null
       }
-    },
-
-    ensureAppFolderExists() {
-      /*
-       * find `Apps` folder
-       */
-      const appsFolderPromise = this.gapi.ensureFolderExists(
-        {
-          name: 'Apps',
-          parent: 'root'
-        })
-        .catch(err => {
-          console.error('caught from appsFolderPromise', err)
-          throw err
-        })
-
-      /*
-       * find `drive-note-app` folder
-       */
-      const driveNoteFolderPromise = appsFolderPromise.then(appsFolder => {
-          const parentId = appsFolder.id
-          console.log('Chosen `Apps` folder ID:', parentId)
-          return this.gapi.ensureFolderExists(
-            {
-              name: 'drive-note-app',
-              parent: parentId
-            })
-        })
-        .catch(err => {
-          console.error('caught from driveNoteFolderPromise', err)
-          throw err
-        })
-
-      return driveNoteFolderPromise
-    },
-
-    initDriveStorage() {
-      console.log('initializing drive storage')
-
-      // check for app config file existence
-      const configPromise = this.gapi.listFiles(
-        {
-          q: `name = 'config.json' and 'appDataFolder' in parents`,
-          spaces: 'appDataFolder',
-          fields: 'files(id,name,parents)',
-        })
-        .then(response => {
-          /*
-           * if no config file, create one
-           */
-          const files = response.result.files
-          if (files.length === 0) {
-            console.warn('config file not found')
-
-            const appFolderPromise = this.ensureAppFolderExists()
-              .catch(err => {
-                console.error('caught from appFolderPromise:', err)
-                throw err
-              })
-            /*
-             * create config file
-             */
-            const configContentPromise = appFolderPromise.then(appFolder => {
-                const parentId = appFolder.id
-                console.log('Chosen `driveNoteFolder` folder ID:', parentId)
-                const configContent =  {
-                  appFolderId: parentId
-                }
-                return this.gapi.uploadFile(
-                  {
-                    name: 'config.json',
-                    mimeType: 'application/json',
-                    parents: ['appDataFolder'],
-                    content: JSON.stringify(configContent),
-                  })
-                  .then(configFileResource => {
-                    return {
-                      config: configContent,
-                      configFileId: configFileResource
-                    }
-                  })
-              })
-              .catch(err => {
-                console.error('caught from configPromise', err)
-                throw err
-              })
-
-            return configContentPromise;
-          }
-
-          /*
-           * get config contents
-           */
-          const configFile = files[0]
-          return this.gapi.getFileContent(configFile.id)
-            .then(response => {
-              console.log('file content request result:', response.result)
-              return { config: response.result, configFileId: configFile.id }
-            })
-        })
-        .then(({ config, configFileId }) => {
-          console.log('got config', config)
-          return this.gapi.getFile(
-            {
-              fileId: config.appFolderId,
-              trashed: false
-            })
-            .then(() => {
-              console.log('config is valid')
-              return config
-            })
-            .catch(err => {
-              console.error('config is invalid: ', err)
-              /*
-               * create app folder
-               */
-              const appFolderPromise = this.ensureAppFolderExists()
-
-              /*
-               * update config
-               */
-              const newConfigPromise = appFolderPromise.then(appFolder => {
-                  const newConfig = {
-                    appFolderId: appFolder.id
-                  }
-                  return this.gapi.updateFileContent(
-                    {
-                      id: configFileId,
-                      name: 'config.json',
-                      parents: ['appDataFolder'],
-                      mimeType: 'application/json',
-                      content: JSON.stringify(newConfig)
-                    })
-                    .then(() => newConfig)
-                })
-                .catch(err => {
-                  console.error('failed to update config:', err)
-                  throw err
-                })
-
-              return newConfigPromise
-            })
-        })
-        .catch(err => console.error('caught while searching config file:', err))
-
-        return configPromise
     }
   },
 
   watch: {
     signedIn: function() {
       if (this.signedIn) {
-        this.initDriveStorage()
+        Drive.initDriveStorage()
           .then(config => {
             console.log('got initialized config:', config)
             this.config = config
+
+            if (window.location.hash === '') {
+              window.location.hash = this.config.appFolderId
+              console.log(window.location.hash)
+            } else {
+              this.updateList()
+            }
           })
           .catch(err => {
             console.error('failed to init Drive storage:', err)
