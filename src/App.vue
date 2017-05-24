@@ -119,121 +119,82 @@ export default {
       console.log('initializing drive storage')
 
       // check for app config file existence
-      this.gapi.listFiles({
-        q: `name = 'config.json' and 'appDataFolder' in parents`,
-        spaces: 'appDataFolder',
-        fields: 'files(id,name,parents)',
-      }).then(response => {
-        console.log('response for config.json', response.result)
-        console.log('response.result.files.length', response.result.files.length)
-
-        /*
-         * no config file, create one
-         */
-        if (response.result.files.length === 0) {
-
+      return this.gapi.listFiles(
+        {
+          q: `name = 'config.json' and 'appDataFolder' in parents`,
+          spaces: 'appDataFolder',
+          fields: 'files(id,name,parents)',
+        })
+        .then(response => {
           /*
-           * find `Apps` folder
+           * if no config file, create one
            */
-          return this.gapi.listFiles({
-            q: `name = 'Apps' and 'root' in parents`,
-            fields: 'files(id,name,parents,trashed)'
-          }).then(listOfAppsFolders => {
-            const files = listOfAppsFolders.result.files
-            console.log('list of Apps folders:', files)
-
-            let i = 0
-            for (; i < files.length; ++i) {
-              if (!files[i].trashed) {
-                break
-              }
-            }
-
-            // if no folder found, than create it
-            if (files.length === 0 || i === files.length) {
-              if (files.length === 0) {
-                console.log('No `App` folders')
-              } else {
-                console.log('no not-trashed `Apps` folders')
-              }
-              return this.gapi.createFolder({ name: 'Apps' })
-                .then(newFolder => newFolder.result)
-            }
-
-            // return found `Apps` folder otherwise
-            return files[i]
-
-          }).then(appsFolder => {
-            const { id } = appsFolder
-            console.log('Chosen Apps folder ID:', id)
+          if (response.result.files.length === 0) {
+            console.warn('config file not found')
+            /*
+             * find `Apps` folder
+             */
+            const appsFolderPromise = this.gapi.ensureFolderExists(
+              {
+                name: 'Apps',
+                parent: 'root'
+              })
+              .catch(err => {
+                console.error('caught from appsFolderPromise', err)
+                throw err
+              })
 
             /*
              * find `drive-note-app` folder
              */
-            return this.gapi.listFiles({
-              q: `name = 'drive-note-app' and '${id}' in parents`,
-              fields: 'files(id, name, parents, trashed)'
-            }).then(list => ({list, id}))
-
-          }).then(({list, id}) => {
-            const files = list.result.files
-            console.log('list of drive-note-app folders inside Apps:', files)
-
-            let i = 0
-            for (; i < files.length; ++i) {
-              if (!files[i].trashed) {
-                break
-              }
-            }
-
-            // if no folder found, than create it
-            if (files.length === 0 || i === files.length) {
-              if (files.length === 0) {
-                console.log('No `drive-note-app` folders')
-              } else {
-                console.log('no not-trashed `drive-note-app` folders')
-              }
-              return this.gapi.createFolder({
-                name: 'drive-note-app',
-                parents: [ id ]
-              }).then(newFolder => newFolder.result)
-            }
-
-            // return found `drive-note-app` folder otherwise
-            return files[i]
-
-          }).then(driveNoteAppFolder => {
-            const { id } = driveNoteAppFolder
-            console.log('Chosen `drive-note-app` folder ID:', id)
-            /*
-             * find `drive-note-app` folder
-             */
-            return this.gapi.listFiles({
-              q: `name = 'drive-note-app' and '${id}' in parents`
-            }).then(list => ({list, id}))
-          }).then(({ list, id }) => {
-            const files = list.result.files
-            console.log('list of files in drive-note-app:', files)
+            const driveNoteFolderPromise = appsFolderPromise.then(appsFolder => {
+                const parentId = appsFolder.id
+                console.log('Chosen `Apps` folder ID:', parentId)
+                return this.gapi.ensureFolderExists(
+                  {
+                    name: 'drive-note-app',
+                    parent: parentId
+                  })
+              })
+              .catch(err => {
+                console.error('caught from driveNoteFolderPromise', err)
+                throw err
+              })
 
             /*
              * create config file
              */
-            return this.gapi.createFile({
-                name: 'config.json',
-                mimeType: 'application/json',
-                parents: ['appDataFolder'],
-                content: `{ "appFolderId": "${id}" }`,
-                fields: 'id, kind, mimeType, name, parents'
-              }).then(response => response.result)
-          })
-        }
-        return response.result
-      }).then(result => {
-        console.log('result (config.json):', result)
+            const configPromise = driveNoteFolderPromise.then(driveNoteFolder => {
+                const parentId = driveNoteFolder.id
+                console.log('Chosen `driveNoteFolder` folder ID:', parentId)
+                return this.gapi.createFile(
+                  {
+                    name: 'config.json',
+                    mimeType: 'application/json',
+                    parents: ['appDataFolder'],
+                    content: `{ "appFolderId": "${parentId}" }`,
+                    fields: 'id, kind, mimeType, name, parents'
+                  })
+                  .then(response => response.result)
+              })
+              .catch(err => {
+                console.error('caught from configPromise', err)
+                throw err
+              })
 
-      }).catch(err => console.error)
+            return configPromise;
+          }
+          return response.result.files[0]
+        })
+        .then(result => {
+          console.log('result (config.json):', result)
+          this.gapi.getFileContent(result.id)
+            .then(response => {
+              console.log('file content request result:', response.result)
+            })
+        })
+        .catch(err => console.error('caught while searching config file:', err))
     }
-
   },
 
   watch: {

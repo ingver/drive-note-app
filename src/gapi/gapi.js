@@ -35,15 +35,16 @@ export default class Gapi {
 
           gapi.load('client:auth2', () => {
             console.log('gapi client load', gapi.client)
-            gapi.client.init({
-              discoveryDocs: this.DISCOVERY,
-              clientId: this.CLIENT_ID,
-              scope: this.SCOPES.join(' ')
-            }).then(() => {
-              console.log('gapi client inited')
-              resolve()
-
-            }, reject)
+            gapi.client.init(
+              {
+                discoveryDocs: this.DISCOVERY,
+                clientId: this.CLIENT_ID,
+                scope: this.SCOPES.join(' ')
+              })
+              .then(() => {
+                console.log('gapi client inited')
+                resolve()
+              }, reject)
           })
 
         }).bind(this)()
@@ -99,7 +100,6 @@ export default class Gapi {
       name,
       parents,
       contentType: mimeType
-      //parents: ['appDataFolder']
     }
 
     const requestBody =
@@ -111,33 +111,99 @@ export default class Gapi {
       content +
       closeDelim
 
-    console.log('creating file')
     return new Promise(
 
       (resolve, reject) => {
-        gapi.client.request({
-          path: '/upload/drive/v3/files/',
-          method: 'POST',
-          params: {
-            uploadType: 'multipart'
-          },
-          headers: {
-            'Content-Type': `multipart/related; boundary="${boundary}"`
-          },
-          body: requestBody
-        }).then(resolve, reject)
+        gapi.client.request(
+          {
+            path: '/upload/drive/v3/files/',
+            method: 'POST',
+            params: {
+              uploadType: 'multipart'
+            },
+            headers: {
+              'Content-Type': `multipart/related; boundary="${boundary}"`
+            },
+            body: requestBody
+          })
+          .then(resolve, reject)
+      })
+  }
+
+  getFileContent(fileId) {
+    return new Promise(
+      (resolve, reject) => {
+        gapi.client.drive.files.get(
+          {
+            fileId,
+            alt: 'media'
+          })
+          .then(resolve, reject)
       })
   }
 
   createFolder({ name, parents = '' }) {
     return new Promise(
       (resolve,reject) => {
-        gapi.client.drive.files.create({
-          name,
-          mimeType: 'application/vnd.google-apps.folder',
-          parents,
-          fields: 'id'
-        }).then(resolve, reject)
+        gapi.client.drive.files.create(
+          {
+            name,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents,
+            fields: 'id'
+          })
+          .then(resolve, reject)
       })
+  }
+
+  findUntrashedFolder({ name, parent = '', fields = []}) {
+    let query = `name = '${name}'`
+    if (parent !== '') {
+      query = query + ` and '${parent}' in parents`
+    }
+    query = query + ` and trashed = false`
+
+    const folderListPromise = this.listFiles(
+      {
+        q: query,
+        fields: `files(${fields.join(',')})`
+      })
+      .then(response => {
+        const files = response.result.files
+        return files
+      })
+      .catch(err => {
+        console.error('caught error in findUntrashedFolder:', err)
+        throw err
+      })
+
+    return folderListPromise
+  }
+
+  ensureFolderExists({ name, parent = '' }) {
+    console.log(`Ensuring '${name}' folder exists`)
+
+    const folderPromise = this.findUntrashedFolder(
+      {
+        name,
+        parent,
+        fields: ['id', 'name', 'parents', 'trashed']
+      })
+      .then(listOfFolders => {
+        /* if no folder found, than create one */
+        if (listOfFolders.length === 0) {
+          console.warn(`No '${name}' folders found`)
+          return this.createFolder({ name })
+            .then(newFolder => newFolder.result)
+        }
+        /* otherwise take first */
+        return listOfFolders[0]
+      })
+      .catch(err => {
+        console.error('caught error in ensureFolderExists:', err)
+        throw err
+      })
+
+    return folderPromise
   }
 }
