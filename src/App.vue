@@ -60,7 +60,8 @@ export default {
       signedIn: false,
       gapi: new Gapi(config),
       profile: null,
-      currentList: null
+      currentList: null,
+      config: null
     }
   },
 
@@ -115,11 +116,45 @@ export default {
       }
     },
 
+    ensureAppFolderExists() {
+      /*
+       * find `Apps` folder
+       */
+      const appsFolderPromise = this.gapi.ensureFolderExists(
+        {
+          name: 'Apps',
+          parent: 'root'
+        })
+        .catch(err => {
+          console.error('caught from appsFolderPromise', err)
+          throw err
+        })
+
+      /*
+       * find `drive-note-app` folder
+       */
+      const driveNoteFolderPromise = appsFolderPromise.then(appsFolder => {
+          const parentId = appsFolder.id
+          console.log('Chosen `Apps` folder ID:', parentId)
+          return this.gapi.ensureFolderExists(
+            {
+              name: 'drive-note-app',
+              parent: parentId
+            })
+        })
+        .catch(err => {
+          console.error('caught from driveNoteFolderPromise', err)
+          throw err
+        })
+
+      return driveNoteFolderPromise
+    },
+
     initDriveStorage() {
       console.log('initializing drive storage')
 
       // check for app config file existence
-      return this.gapi.listFiles(
+      const configPromise = this.gapi.listFiles(
         {
           q: `name = 'config.json' and 'appDataFolder' in parents`,
           spaces: 'appDataFolder',
@@ -129,71 +164,102 @@ export default {
           /*
            * if no config file, create one
            */
-          if (response.result.files.length === 0) {
+          const files = response.result.files
+          if (files.length === 0) {
             console.warn('config file not found')
-            /*
-             * find `Apps` folder
-             */
-            const appsFolderPromise = this.gapi.ensureFolderExists(
-              {
-                name: 'Apps',
-                parent: 'root'
-              })
+
+            const appFolderPromise = this.ensureAppFolderExists()
               .catch(err => {
-                console.error('caught from appsFolderPromise', err)
+                console.error('caught from appFolderPromise:', err)
                 throw err
               })
-
-            /*
-             * find `drive-note-app` folder
-             */
-            const driveNoteFolderPromise = appsFolderPromise.then(appsFolder => {
-                const parentId = appsFolder.id
-                console.log('Chosen `Apps` folder ID:', parentId)
-                return this.gapi.ensureFolderExists(
-                  {
-                    name: 'drive-note-app',
-                    parent: parentId
-                  })
-              })
-              .catch(err => {
-                console.error('caught from driveNoteFolderPromise', err)
-                throw err
-              })
-
             /*
              * create config file
              */
-            const configPromise = driveNoteFolderPromise.then(driveNoteFolder => {
-                const parentId = driveNoteFolder.id
+            const configContentPromise = appFolderPromise.then(appFolder => {
+                const parentId = appFolder.id
                 console.log('Chosen `driveNoteFolder` folder ID:', parentId)
-                return this.gapi.createFile(
+                const configContent =  {
+                  appFolderId: parentId
+                }
+                return this.gapi.uploadFile(
                   {
                     name: 'config.json',
                     mimeType: 'application/json',
                     parents: ['appDataFolder'],
-                    content: `{ "appFolderId": "${parentId}" }`,
-                    fields: 'id, kind, mimeType, name, parents'
+                    content: JSON.stringify(configContent),
                   })
-                  .then(response => response.result)
+                  .then(configFileResource => {
+                    return {
+                      config: configContent,
+                      configFileId: configFileResource
+                    }
+                  })
               })
               .catch(err => {
                 console.error('caught from configPromise', err)
                 throw err
               })
 
-            return configPromise;
+            return configContentPromise;
           }
-          return response.result.files[0]
-        })
-        .then(result => {
-          console.log('result (config.json):', result)
-          this.gapi.getFileContent(result.id)
+
+          /*
+           * get config contents
+           */
+          const configFile = files[0]
+          return this.gapi.getFileContent(configFile.id)
             .then(response => {
               console.log('file content request result:', response.result)
+              return { config: response.result, configFileId: configFile.id }
+            })
+        })
+        .then(({ config, configFileId }) => {
+          console.log('got config', config)
+          return this.gapi.getFile(
+            {
+              fileId: config.appFolderId,
+              trashed: false
+            })
+            .then(() => {
+              console.log('config is valid')
+              return config
+            })
+            .catch(err => {
+              console.error('config is invalid: ', err)
+              /*
+               * create app folder
+               */
+              const appFolderPromise = this.ensureAppFolderExists()
+
+              /*
+               * update config
+               */
+              const newConfigPromise = appFolderPromise.then(appFolder => {
+                  const newConfig = {
+                    appFolderId: appFolder.id
+                  }
+                  return this.gapi.updateFileContent(
+                    {
+                      id: configFileId,
+                      name: 'config.json',
+                      parents: ['appDataFolder'],
+                      mimeType: 'application/json',
+                      content: JSON.stringify(newConfig)
+                    })
+                    .then(() => newConfig)
+                })
+                .catch(err => {
+                  console.error('failed to update config:', err)
+                  throw err
+                })
+
+              return newConfigPromise
             })
         })
         .catch(err => console.error('caught while searching config file:', err))
+
+        return configPromise
     }
   },
 
@@ -201,6 +267,16 @@ export default {
     signedIn: function() {
       if (this.signedIn) {
         this.initDriveStorage()
+          .then(config => {
+            console.log('got initialized config:', config)
+            this.config = config
+          })
+          .catch(err => {
+            console.error('failed to init Drive storage:', err)
+          })
+      } else {
+        this.config = null
+        this.currentList = null
       }
       //this.updateList()
     }

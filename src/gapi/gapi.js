@@ -91,15 +91,18 @@ export default class Gapi {
       })
   }
 
-  createFile({ name, parents, content, mimeType, spaces }) {
+  constructMiltipartRequestBody({ name, parents, mimeType, content }) {
     const boundary = '-------314159265358979323846'
     const delimiter = `\r\n--${boundary}\r\n`
     const closeDelim = `\r\n--${boundary}--`
 
     const metadata = {
       name,
-      parents,
       contentType: mimeType
+    }
+
+    if (parents) {
+      metadata.parents = parents
     }
 
     const requestBody =
@@ -111,26 +114,81 @@ export default class Gapi {
       content +
       closeDelim
 
-    return new Promise(
+    const requestData = {
+      params: {
+        uploadType: 'multipart'
+      },
+      headers: {
+        'Content-Type': `multipart/related; boundary="${boundary}"`
+      },
+      body: requestBody
+    }
 
+    return requestData
+  }
+
+  uploadFile({ name, parents, mimeType, content }) {
+    const requestBody = this.constructMiltipartRequestBody({ name, parents, mimeType, content })
+
+    const requestData = Object.assign(
+      {},
+      requestBody,
+      {
+        path: `/upload/drive/v3/files/`,
+        method: 'POST',
+      })
+
+    return new Promise(
       (resolve, reject) => {
-        gapi.client.request(
-          {
-            path: '/upload/drive/v3/files/',
-            method: 'POST',
-            params: {
-              uploadType: 'multipart'
-            },
-            headers: {
-              'Content-Type': `multipart/related; boundary="${boundary}"`
-            },
-            body: requestBody
-          })
+        gapi.client.request(requestData)
           .then(resolve, reject)
       })
   }
 
-  getFileContent(fileId) {
+  updateFileContent({ id, name, mimeType, content }) {
+    const requestBody = this.constructMiltipartRequestBody({ name, mimeType, content })
+
+    const requestData= Object.assign(
+      {},
+      requestBody,
+      {
+        path: `/upload/drive/v3/files/${id}`,
+        method: 'PATCH',
+      })
+
+    return new Promise(
+      (resolve, reject) => {
+        gapi.client.request(requestData)
+          .then(resolve, reject)
+      })
+  }
+
+  getFile({ fileId = '', trashed = false }) {
+    if (fileId === '') {
+      throw new Error('fileId empty')
+    }
+    return new Promise(
+      (resolve, reject) => {
+        gapi.client.drive.files.get(
+          {
+            fileId,
+            fields: 'id, name, trashed, parents'
+          })
+          .then(response => {
+            const file = response.result
+            if (file.trashed !== trashed) {
+              reject(new Error(`Requested file ${ !file.trashed ? 'NOT ' : '' }trashed`))
+            }
+
+            resolve(file)
+          }, reject)
+      })
+  }
+
+  getFileContent(fileId = '') {
+    if (fileId === '') {
+      throw new Error('fileId is empty')
+    }
     return new Promise(
       (resolve, reject) => {
         gapi.client.drive.files.get(
@@ -193,7 +251,11 @@ export default class Gapi {
         /* if no folder found, than create one */
         if (listOfFolders.length === 0) {
           console.warn(`No '${name}' folders found`)
-          return this.createFolder({ name })
+          return this.createFolder(
+            {
+              name,
+              parents: [parent]
+            })
             .then(newFolder => newFolder.result)
         }
         /* otherwise take first */
