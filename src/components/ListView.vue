@@ -40,6 +40,7 @@
 
     <div class="cards">
       <card v-for="item in listData.items" :key="item.id"
+        :id="item.id"
         :title="item.title"
         :content="item.content"
         :bg-img="item.bgImg">
@@ -133,6 +134,7 @@
 
   & .content-view {
     padding: 3px;
+    min-height: 50px;
     border-radius: 2px;
     color: #666;
     word-wrap: break-word;

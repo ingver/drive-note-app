@@ -110,7 +110,7 @@ export default {
     updateList() {
       console.log('invoked loadData...')
       if (this.signedIn) {
-        console.log('Fetching data...')
+        console.log('fetching data...')
 
         console.log('hash:', window.location.hash)
         let listId = window.location.hash.slice(1)
@@ -118,8 +118,6 @@ export default {
           listId = this.config.appFolderId
         }
         console.log('listId:', listId)
-
-        let listData = {}
 
         Gapi.getFileMetadata(
           {
@@ -130,23 +128,47 @@ export default {
             console.error(`Cannot find folder with id ${listId}:`, err)
             throw err
           })
-          .then(listFolder => {
-            console.log('got listFolder:', listFolder)
-            listData.title = listFolder.name
-            listData.parents = listFolder.parents
+          .then(folder => {
+            console.log('got folder:', folder)
+
+            return {
+              title: folder.name,
+              parents: folder.parents,
+              content: ''
+            }
           })
-          .then(() => {
+          .then(listData => {
             return Gapi.listFiles(
               {
-                q: `'${listId}' in parents and trashed = false`,
+                q: `'${listId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
                 fields: 'files(id, name, trashed, parents)'
               })
+              .then(childrenResponse => {
+                return {
+                  listData,
+                  children: childrenResponse.result.files
+                }
+              })
               .catch(err => {
-                console.error(`Couldn't get children of list with id ${listId}`, err)
+                console.error(`Couldn't get children of list with id ${listId}:`, err)
+                throw err
               })
           })
-          .then(itemsList => {
-            console.log('items list:', itemsList.result)
+          .then(({ listData, children }) => {
+            console.log('listData:', listData)
+            console.log('items list:', children)
+            const items = children.map(c => ({
+                id: c.id,
+                title: c.name
+              }))
+
+            return Object.assign(
+              {},
+              listData,
+              { items })
+          })
+          .then(listData => {
+            this.currentList = listData
           })
           .catch(err => {
             console.error('failed to update the list:', err)
@@ -163,6 +185,9 @@ export default {
     signedIn: function() {
       if (this.signedIn) {
         Drive.initDriveStorage()
+          .catch(err => {
+            console.error('failed to init Drive storage:', err)
+          })
           .then(config => {
             console.log('got initialized config:', config)
             this.config = config
@@ -173,9 +198,6 @@ export default {
             } else {
               this.updateList()
             }
-          })
-          .catch(err => {
-            console.error('failed to init Drive storage:', err)
           })
       } else {
         this.config = null

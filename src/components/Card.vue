@@ -1,12 +1,15 @@
 <template>
 
-<div class="card" :style="cardStyles">
+<a class="card"
+    :style="cardStyles"
+    :href="link"
+    @click="changeHash(link)">
   <h3 class="title">{{ title }}</h3>
-  <button class="menu-button"></button>
+  <button class="menu-button" @click.stop="showMenu"></button>
   <div class="content">
     {{ content }}
   </div>
-</div>
+</a>
 
 </template>
 
@@ -32,6 +35,7 @@
   background-size: 100%;
   overflow: hidden;
   transition: all 0.3s;
+  text-decoration: none;
 
   &::before {
     z-index: 1;
@@ -160,17 +164,38 @@ import marked from 'marked'
 export default {
   name: 'card',
   props: {
+    id: String,
     title: String,
     content: String,
     bgImg: String
   },
 
   data() {
+    const bg = this.bgImg === undefined ? `` : `url(${this.bgImg})`
     return {
       cardStyles: {
-        backgroundImage: `url(${this.bgImg})`
+        backgroundImage: bg
       }
     }
+  },
+
+  computed: {
+    link() {
+      if (this.id !== undefined) {
+        return `#${this.id}`
+      }
+    }
+  },
+
+  methods: {
+    changeHash(link = '') {
+      if (link === '') {
+        return
+      }
+      window.location.hash = link
+    },
+
+    showMenu(e) {}
   }
 }
 
