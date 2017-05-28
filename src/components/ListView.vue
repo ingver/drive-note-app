@@ -271,6 +271,7 @@ export default {
     endEdit() {
       this.editable = false
       this.listData.content = this.listData.content.trim()
+      this.$emit('update-content')
     }
   },
 

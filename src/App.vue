@@ -7,11 +7,13 @@
     @sign-in="signIn"
     @sign-out="signOut">
   </user-bar>
+
   <list-view class="list-view"
-    :list-data="currentList"
+    :list-data="currentListData"
     :signedIn="signedIn"
     :atRoot="atRoot"
-    :loading="loading"></list-view>
+    :loading="loading"
+    @update-content="updateContent"></list-view>
 </div>
 
 </template>
@@ -61,7 +63,8 @@ export default {
     return {
       signedIn: false,
       profile: null,
-      currentList: null,
+      currentListId: '',
+      currentListData: null,
       config: null,
       atRoot: false,
       loading: true
@@ -94,11 +97,13 @@ export default {
           console.log('successfully signed in')
         })
         .catch(err => console.error('failed to sign in:', err))
+
+      this.loading = true
     },
 
     signOut() {
       Gapi.signOut()
-        .then(() => console.log('successfulle signed out'))
+        .then(() => console.log('successfull signed out'))
     },
 
     changeStatus(status) {
@@ -118,16 +123,16 @@ export default {
         this.loading = true
 
         console.log('hash:', window.location.hash)
-        let listId = window.location.hash.slice(1)
-        if (listId === '') {
-          listId = this.config.appFolderId
+        this.currentListId = window.location.hash.slice(1)
+        if (this.currentListId === '') {
+          this.currentListId = this.config.appFolderId
         }
-        console.log('listId:', listId)
+        console.log('current list id:', this.currentListId)
 
-        Drive.getNode(listId)
+        Drive.getNode(this.currentListId)
           .then(listData => {
-            this.currentList = listData
-            this.atRoot = listId === this.config.appFolderId
+            this.currentListData = listData
+            this.atRoot = this.currentListId === this.config.appFolderId
             this.loading = false
           })
           .catch(err => {
@@ -135,8 +140,14 @@ export default {
           })
       } else {
         console.log('not signed in')
-        this.currentList = null
+        this.currentListData = null
       }
+    },
+
+    updateContent() {
+      const { contentFileId, content } = this.currentListData
+
+      Drive.uploadContent({ contentFileId, content })
     }
   },
 
@@ -160,7 +171,7 @@ export default {
           })
       } else {
         this.config = null
-        this.currentList = null
+        this.currentListData = null
       }
     }
   }

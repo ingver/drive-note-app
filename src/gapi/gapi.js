@@ -92,17 +92,20 @@ class Gapi {
       })
   }
 
-  static constructMiltipartRequestBody({ name, parents, mimeType, content }) {
+  static constructMiltipartRequestBody({ name = '', parents = '', mimeType = '', content = '' }) {
     const boundary = '-------314159265358979323846'
     const delimiter = `\r\n--${boundary}\r\n`
     const closeDelim = `\r\n--${boundary}--`
 
-    const metadata = {
-      name,
-      contentType: mimeType
-    }
+    const metadata = {}
 
-    if (parents) {
+    if (mimeType !== '') {
+      metadata.mimeType = mimeType
+    }
+    if (name !== '') {
+      metadata.name = name
+    }
+    if (parents !== '') {
       metadata.parents = parents
     }
 
@@ -146,10 +149,10 @@ class Gapi {
       })
   }
 
-  updateFileContent({ id, name, mimeType, content }) {
-    const requestBody = Gapi.constructMiltipartRequestBody({ name, mimeType, content })
+  updateFileContent({ id, mimeType, content }) {
+    const requestBody = Gapi.constructMiltipartRequestBody({ mimeType, content })
 
-    const requestData= Object.assign(
+    const requestData = Object.assign(
       {},
       requestBody,
       {

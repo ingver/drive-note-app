@@ -182,10 +182,11 @@ export function getNode(listId) {
           pageSize: 1,
           fields: `files(id)`
         })
-        .then(contentResponse => {
-          console.log('got node content', contentResponse.result)
-          const files = contentResponse.result.files
-          const contentFile = files.length > 0 ? files[0] : null
+        .then(contentFileResponse => {
+          console.log('got node content', contentFileResponse.result)
+          const files = contentFileResponse.result.files,
+                contentFile = files.length > 0 ? files[0] : null
+
           return {
             listData,
             contentFile
@@ -205,14 +206,17 @@ export function getNode(listId) {
         return Object.assign(
           {},
           listData,
-          { content: ''})
+          { content: '', contentFileId: '' })
       } else {
         return Gapi.getFileContent(contentFile.id)
           .then(contentResponse => {
             return Object.assign(
               {},
               listData,
-              { content: contentResponse.body })
+              {
+                content: contentResponse.body,
+                contentFileId: contentFile.id
+              })
           })
           .catch(err => {
             console.error(`Couldn't get node content:`, err)
@@ -257,5 +261,22 @@ export function getNode(listId) {
         {},
         listData,
         { items })
+    })
+}
+
+export function uploadContent({ contentFileId = '', content = ''}) {
+  if (contentFileId === '') {
+    return Promise.reject(new Error(`contentFileId is empty`))
+  }
+
+  return Gapi.updateFileContent(
+    {
+      id: contentFileId,
+      mimeType: 'text/markdown',
+      content
+    })
+    .catch(err => {
+      console.error('Caught error while updating content:', err)
+      throw err
     })
 }
