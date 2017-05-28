@@ -124,54 +124,7 @@ export default {
         }
         console.log('listId:', listId)
 
-        Gapi.getFileMetadata(
-          {
-            fileId: listId,
-            fields: ['name', 'parents', 'trashed']
-          })
-          .catch(err => {
-            console.error(`Cannot find folder with id ${listId}:`, err)
-            throw err
-          })
-          .then(folder => {
-            console.log('got folder:', folder)
-
-            return {
-              title: folder.name,
-              parents: folder.parents,
-              content: ''
-            }
-          })
-          .then(listData => {
-            return Gapi.listFiles(
-              {
-                q: `'${listId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
-                fields: 'files(id, name, trashed, parents)'
-              })
-              .then(childrenResponse => {
-                return {
-                  listData,
-                  children: childrenResponse.result.files
-                }
-              })
-              .catch(err => {
-                console.error(`Couldn't get children of list with id ${listId}:`, err)
-                throw err
-              })
-          })
-          .then(({ listData, children }) => {
-            console.log('listData:', listData)
-            console.log('items list:', children)
-            const items = children.map(c => ({
-                id: c.id,
-                title: c.name
-              }))
-
-            return Object.assign(
-              {},
-              listData,
-              { items })
-          })
+        Drive.getNode(listId)
           .then(listData => {
             this.currentList = listData
             this.atRoot = listId === this.config.appFolderId
@@ -180,7 +133,6 @@ export default {
           .catch(err => {
             console.error('failed to update the list:', err)
           })
-
       } else {
         console.log('not signed in')
         this.currentList = null
@@ -210,7 +162,6 @@ export default {
         this.config = null
         this.currentList = null
       }
-      //this.updateList()
     }
   }
 }

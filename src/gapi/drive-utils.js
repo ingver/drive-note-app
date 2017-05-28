@@ -145,3 +145,117 @@ export function initDriveStorage() {
 
     return configPromise
 }
+
+export function getNode(listId) {
+  /*
+   * Get list node metadata
+   */
+  return Gapi.getFileMetadata(
+    {
+      fileId: listId,
+      fields: ['name', 'parents', 'trashed']
+    })
+    .catch(err => {
+      console.error(`Cannot find folder with id ${listId}:`, err)
+      throw err
+    })
+
+  /*
+   * Save node metadata
+   */
+    .then(folder => {
+      console.log('got folder:', folder)
+
+      return {
+        title: folder.name,
+        parents: folder.parents,
+      }
+    })
+
+  /*
+   * Search for node content
+   */
+    .then(listData => {
+      return Gapi.listFiles(
+        {
+          q: `name = '.content.md' and '${listId}' in parents and trashed = false`,
+          pageSize: 1,
+          fields: `files(id)`
+        })
+        .then(contentResponse => {
+          console.log('got node content', contentResponse.result)
+          const files = contentResponse.result.files
+          const contentFile = files.length > 0 ? files[0] : null
+          return {
+            listData,
+            contentFile
+          }
+        })
+        .catch(err => {
+          console.error(`Couldn't load list content:`, err)
+          throw err
+        })
+    })
+
+  /*
+   * Get node content
+   */
+    .then(({ listData, contentFile }) => {
+      if (contentFile === null) {
+        return Object.assign(
+          {},
+          listData,
+          { content: ''})
+      } else {
+        return Gapi.getFileContent(contentFile.id)
+          .then(contentResponse => {
+            return Object.assign(
+              {},
+              listData,
+              { content: contentResponse.body })
+          })
+          .catch(err => {
+            console.error(`Couldn't get node content:`, err)
+            throw err
+          })
+      }
+    })
+
+  /*
+   * Get list of child nodes
+   */
+    .then(listData => {
+      return Gapi.listFiles(
+        {
+          q: `'${listId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
+          fields: 'files(id, name, trashed, parents)'
+        })
+        .then(childrenResponse => {
+          return {
+            listData,
+            children: childrenResponse.result.files
+          }
+        })
+        .catch(err => {
+          console.error(`Couldn't get children of list with id ${listId}:`, err)
+          throw err
+        })
+    })
+
+  /*
+   * Save children metadata
+   */
+    .then(({ listData, children }) => {
+      console.log('listData:', listData)
+      console.log('items list:', children)
+      const items = children.map(c => ({
+          id: c.id,
+          title: c.name
+        }))
+
+      return Object.assign(
+        {},
+        listData,
+        { items })
+    })
+}

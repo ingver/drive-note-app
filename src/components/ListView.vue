@@ -15,9 +15,15 @@
     </h2>
     <div class="content-view-group"
         v-if="!editable">
+
       <div class="content-view"
-        v-html="listContent">
+        v-if="listData.content === ''">
+        <p class="empty-content">No content here yet (click EDIT to add some)</p>
       </div>
+      <div class="content-view"
+        v-else v-html="listContent">
+      </div>
+
       <button class="button edit-button"
           @click="editContent">
         Edit
@@ -138,6 +144,12 @@
     border-radius: 2px;
     color: #666;
     word-wrap: break-word;
+
+    & .empty-content {
+      font-style: italic;
+      font-size: 16px;
+      color: #888;
+    }
 
     &:hover {
       color: #444;
