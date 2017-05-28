@@ -203,10 +203,20 @@ export function getNode(listId) {
    */
     .then(({ listData, contentFile }) => {
       if (contentFile === null) {
-        return Object.assign(
-          {},
-          listData,
-          { content: '', contentFileId: '' })
+        console.warn(`Missing file meta`)
+        return Gapi.uploadFile(
+          {
+            name: '.content.md',
+            parents: [`${listId}`],
+            mimeType: 'text/markdown'
+          })
+          .then(contentFileMeta => {
+            console.log(`new content file meta:`, contentFileMeta)
+            return Object.assign(
+              {},
+              listData,
+              { content: '', contentFileId: contentFileMeta.result.id })
+          })
       } else {
         return Gapi.getFileContent(contentFile.id)
           .then(contentResponse => {
@@ -264,7 +274,7 @@ export function getNode(listId) {
     })
 }
 
-export function uploadContent({ contentFileId = '', content = ''}) {
+export function uploadContent({ contentFileId = '', content = '' }) {
   if (contentFileId === '') {
     return Promise.reject(new Error(`contentFileId is empty`))
   }
