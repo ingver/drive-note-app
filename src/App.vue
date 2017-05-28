@@ -9,7 +9,9 @@
   </user-bar>
   <list-view class="list-view"
     :list-data="currentList"
-    :signedIn="signedIn"></list-view>
+    :signedIn="signedIn"
+    :atRoot="atRoot"
+    :loading="loading"></list-view>
 </div>
 
 </template>
@@ -60,7 +62,9 @@ export default {
       signedIn: false,
       profile: null,
       currentList: null,
-      config: null
+      config: null,
+      atRoot: false,
+      loading: true
     }
   },
 
@@ -111,6 +115,7 @@ export default {
       console.log('invoked loadData...')
       if (this.signedIn) {
         console.log('fetching data...')
+        this.loading = true
 
         console.log('hash:', window.location.hash)
         let listId = window.location.hash.slice(1)
@@ -169,6 +174,8 @@ export default {
           })
           .then(listData => {
             this.currentList = listData
+            this.atRoot = listId === this.config.appFolderId
+            this.loading = false
           })
           .catch(err => {
             console.error('failed to update the list:', err)

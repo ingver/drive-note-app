@@ -5,11 +5,11 @@
     <p class="notification">You must be signed into your Google Account to use the app!</p>
   </div>
 
-  <div v-else-if="listData === null" class="loading-banner banner">
+  <div v-else-if="loading" class="loading-banner banner">
     <p class="notification">Loading...</p>
   </div>
 
-  <div v-else class="content-wrapper">
+  <div v-else-if="!atRoot" class="content-wrapper">
     <h2 class="title">
       {{ listData.title }}
     </h2>
@@ -23,29 +23,29 @@
         Edit
       </button>
     </div>
+  </div>
 
-    <div class="content-edit-group"
-       v-if="editable">
-      <autosize-textarea class="content-edit"
-        v-autofocus
-        :content="listData.content"
-        @input="handleEdit"
-        @keyup.esc="endEdit">
-      </autosize-textarea>
-      <button class="button"
-          @click="endEdit">
-        Save
-      </button>
-    </div>
+  <div class="content-edit-group"
+     v-if="editable">
+    <autosize-textarea class="content-edit"
+      v-autofocus
+      :content="listData.content"
+      @input="handleEdit"
+      @keyup.esc="endEdit">
+    </autosize-textarea>
+    <button class="button"
+        @click="endEdit">
+      Save
+    </button>
+  </div>
 
-    <div class="cards">
-      <card v-for="item in listData.items" :key="item.id"
-        :id="item.id"
-        :title="item.title"
-        :content="item.content"
-        :bg-img="item.bgImg">
-      </card>
-    </div>
+  <div v-if="!loading && listData !== null" class="cards">
+    <card v-for="item in listData.items" :key="item.id"
+      :id="item.id"
+      :title="item.title"
+      :content="item.content"
+      :bg-img="item.bgImg">
+    </card>
   </div>
 
 </div>
@@ -230,7 +230,9 @@ export default {
   },
   props: {
     listData: Object,
-    signedIn: Boolean
+    signedIn: Boolean,
+    atRoot: Boolean,
+    loading: Boolean
   },
 
   data() {
