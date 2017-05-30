@@ -13,7 +13,8 @@
     :signedIn="signedIn"
     :atRoot="atRoot"
     :loading="loading"
-    @update-content="updateContent"></list-view>
+    @update-content="updateContent"
+    @add-item="addItem"></list-view>
 </div>
 
 </template>
@@ -148,6 +149,10 @@ export default {
       const { contentFileId, content } = this.currentListData
 
       Drive.uploadContent({ contentFileId, content })
+    },
+
+    addItem() {
+      console.log('adding new item')
     }
   },
 

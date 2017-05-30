@@ -52,6 +52,9 @@
       :content="item.content"
       :bg-img="item.bgImg">
     </card>
+    <add-item-button
+      @add-item="addItem">
+    </add-item-button>
   </div>
 
 </div>
@@ -233,12 +236,14 @@ import marked from 'marked'
 import autosize from 'autosize'
 import Card from './Card.vue'
 import AutosizeTextarea from './AutosizeTextarea.vue'
+import AddItemButton from './AddItemButton.vue'
 
 export default {
   name: 'list-view',
   components: {
     Card,
-    AutosizeTextarea
+    AutosizeTextarea,
+    AddItemButton
   },
   props: {
     listData: Object,
@@ -272,6 +277,10 @@ export default {
       this.editable = false
       this.listData.content = this.listData.content.trim()
       this.$emit('update-content')
+    },
+
+    addItem() {
+      this.$emit('add-item')
     }
   },
 
