@@ -205,7 +205,11 @@ class Gapi {
       })
   }
 
-  createFolder({ name, parents = '' }) {
+  createFolder({ name = '', parents = '' }) {
+    if (name === '') {
+      return Promise.reject(new Error('name is empty'))
+    }
+
     return new Promise(
       (resolve,reject) => {
         gapi.client.drive.files.create(

@@ -153,6 +153,20 @@ export default {
 
     addItem() {
       console.log('adding new item')
+
+      Gapi.createFolder(
+        {
+          name: 'New Item',
+          parents: [`${this.currentListId}`]
+        })
+        .then(folderResponse => {
+          console.log(`new item created:`, folderResponse)
+          const folder = folderResponse.result
+          window.location.hash = folder.id
+        })
+        .catch(err => {
+          console.error('caught while trying to add new item:', err)
+        })
     }
   },
 

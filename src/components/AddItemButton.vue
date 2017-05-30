@@ -28,7 +28,7 @@
   box-shadow: none;
   outline: none;
   background-color: transparent;
-  transition: all 0.3s;
+  transition: all 0.15s;
 
   &::before {
     content: "+";

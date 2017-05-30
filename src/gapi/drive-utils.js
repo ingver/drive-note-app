@@ -203,7 +203,7 @@ export function getNode(listId) {
    */
     .then(({ listData, contentFile }) => {
       if (contentFile === null) {
-        console.warn(`Missing file meta`)
+        console.warn(`Missing content file meta`)
         return Gapi.uploadFile(
           {
             name: '.content.md',
