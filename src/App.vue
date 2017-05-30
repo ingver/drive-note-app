@@ -11,8 +11,9 @@
   <list-view class="list-view"
     :list-data="currentListData"
     :signedIn="signedIn"
-    :atRoot="atRoot"
+    :at-root="atRoot"
     :loading="loading"
+    :not-found="notFound"
     @update-content="updateContent"
     @add-item="addItem"></list-view>
 </div>
@@ -68,7 +69,8 @@ export default {
       currentListData: null,
       config: null,
       atRoot: false,
-      loading: true
+      loading: true,
+      notFound: false
     }
   },
 
@@ -138,6 +140,7 @@ export default {
           })
           .catch(err => {
             console.error('failed to update the list:', err)
+            this.notFound = true
           })
       } else {
         console.log('not signed in')

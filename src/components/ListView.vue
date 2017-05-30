@@ -5,6 +5,11 @@
     <p class="notification">You must be signed into your Google Account to use the app!</p>
   </div>
 
+  <div v-else-if="notFound" class="not-found-banner banner">
+    <p class="notification">Item not found</p>
+    <a class="go-to-top" href="/">Go to top list</a>
+  </div>
+
   <div v-else-if="loading" class="loading-banner banner">
     <p class="notification">Loading...</p>
   </div>
@@ -215,6 +220,7 @@
 
 .banner {
   display: flex;
+  flex-direction: column;
   justify-content: center;
 }
 
@@ -225,6 +231,17 @@
 
   @media (max-width: 700px) {
     font-size: 24px;
+  }
+}
+
+.not-found-banner {
+  & .notification {
+    color: rgba(255,0,0,0.4);
+  }
+
+  & .go-to-top {
+    display: block;
+    text-align: center;
   }
 }
 </style>
@@ -249,7 +266,8 @@ export default {
     listData: Object,
     signedIn: Boolean,
     atRoot: Boolean,
-    loading: Boolean
+    loading: Boolean,
+    notFound: Boolean
   },
 
   data() {
