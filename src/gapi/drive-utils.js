@@ -173,66 +173,20 @@ export function getNode(listId) {
     })
 
   /*
-   * Search for node content
-   */
-    .then(listData => {
-      return Gapi.listFiles(
-        {
-          q: `name = '.content.md' and '${listId}' in parents and trashed = false`,
-          pageSize: 1,
-          fields: `files(id)`
-        })
-        .then(contentFileResponse => {
-          console.log('got node content', contentFileResponse.result)
-          const files = contentFileResponse.result.files,
-                contentFile = files.length > 0 ? files[0] : null
-
-          return {
-            listData,
-            contentFile
-          }
-        })
-        .catch(err => {
-          console.error(`Couldn't load list content:`, err)
-          throw err
-        })
-    })
-
-  /*
    * Get node content
    */
-    .then(({ listData, contentFile }) => {
-      if (contentFile === null) {
-        console.warn(`Missing content file meta`)
-        return Gapi.uploadFile(
-          {
-            name: '.content.md',
-            parents: [`${listId}`],
-            mimeType: 'text/markdown'
-          })
-          .then(contentFileMeta => {
-            console.log(`new content file meta:`, contentFileMeta)
-            return Object.assign(
-              {},
-              listData,
-              { content: '', contentFileId: contentFileMeta.result.id })
-          })
-      } else {
-        return Gapi.getFileContent(contentFile.id)
-          .then(contentResponse => {
-            return Object.assign(
-              {},
-              listData,
-              {
-                content: contentResponse.body,
-                contentFileId: contentFile.id
-              })
-          })
-          .catch(err => {
-            console.error(`Couldn't get node content:`, err)
-            throw err
-          })
-      }
+    .then(listData => {
+      return getNodeContent(listId)
+        .then(content => {
+          return Object.assign(
+            {},
+            listData,
+            content)
+        })
+        .catch(err => {
+          console.error('failed to get node content:', err)
+          throw err
+        })
     })
 
   /*
@@ -262,15 +216,32 @@ export function getNode(listId) {
     .then(({ listData, children }) => {
       console.log('listData:', listData)
       console.log('items list:', children)
-      const items = children.map(c => ({
-          id: c.id,
-          title: c.name
-        }))
 
-      return Object.assign(
-        {},
-        listData,
-        { items })
+      return Promise.all(children.map(c => {
+          const meta = {
+            id: c.id,
+            title: c.name
+          }
+
+          return getNodeContent(c.id)
+            .then(content => {
+              return Object.assign(
+                {},
+                content,
+                meta)
+            })
+            .catch(err => {
+              console.error('failed to get content of node', c.id)
+              return meta
+            })
+        }))
+        .then(items => {
+          console.log('got children', children)
+          return Object.assign(
+            {},
+            listData,
+            { items })
+        })
     })
 }
 
@@ -310,5 +281,63 @@ export function updateTitle({ listId = '', title = '' }) {
     })
     .catch(err => {
       console.error('caught while updating node title:', err)
+    })
+}
+
+export function getNodeContent(listId = '') {
+  if (listId === '') {
+    return Promise.reject(new Error('listId is empty'))
+  }
+
+  /*
+   * Search for node content
+   */
+  return Gapi.listFiles(
+    {
+      q: `name = '.content.md' and '${listId}' in parents and trashed = false`,
+      pageSize: 1,
+      fields: `files(id)`
+    })
+    .then(contentFileResponse => {
+      console.log('got node content', contentFileResponse.result)
+      const files = contentFileResponse.result.files,
+            contentFile = files.length > 0 ? files[0] : null
+
+      return contentFile
+    })
+
+  /*
+   * Download node content
+   */
+    .then(contentFile => {
+      if (contentFile === null) {
+        console.warn(`Missing content file meta`)
+        return Gapi.uploadFile(
+          {
+            name: '.content.md',
+            parents: [`${listId}`],
+            mimeType: 'text/markdown'
+          })
+          .then(contentFileMeta => {
+            console.log(`new content file meta:`, contentFileMeta)
+            return {
+              content: '',
+              contentFileId: contentFileMeta.result.id
+            }
+          })
+
+      } else {
+        return Gapi.getFileContent(contentFile.id)
+          .then(contentResponse => {
+            return {
+              content: contentResponse.body,
+              contentFileId: contentFile.id
+            }
+          })
+      }
+    })
+    .catch(err => {
+      console.error(`Couldn't load list content:`, err)
+      throw err
     })
 }

@@ -6,8 +6,8 @@
     @click="changeHash(link)">
   <h3 class="title">{{ title }}</h3>
   <button class="menu-button" @click.prevent.stop="removeItem"></button>
-  <div class="content">
-    {{ content }}
+  <div class="content"
+    v-html="cardContent">
   </div>
 </a>
 
@@ -151,7 +151,9 @@
     display: none;
   }
 
-  @apply --markdown-theme;
+  & >>> * {
+    font-size: 1em;
+  }
 }
 
 </style>
@@ -184,6 +186,10 @@ export default {
       if (this.id !== undefined) {
         return `#${this.id}`
       }
+    },
+
+    cardContent() {
+      return marked(this.content)
     }
   },
 
