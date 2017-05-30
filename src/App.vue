@@ -124,6 +124,7 @@ export default {
 
     updateList() {
       console.log('invoked loadData...')
+      this.notFound = false
       if (this.signedIn) {
         console.log('fetching data...')
         this.loading = true
