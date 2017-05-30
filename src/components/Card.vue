@@ -5,7 +5,7 @@
     :href="link"
     @click="changeHash(link)">
   <h3 class="title">{{ title }}</h3>
-  <button class="menu-button" @click.prevent.stop="showMenu"></button>
+  <button class="menu-button" @click.prevent.stop="removeItem"></button>
   <div class="content">
     {{ content }}
   </div>
@@ -195,7 +195,11 @@ export default {
       window.location.hash = link
     },
 
-    showMenu(e) {}
+    showMenu(e) {},
+
+    removeItem() {
+      this.$emit('remove-item', this.id)
+    }
   }
 }
 

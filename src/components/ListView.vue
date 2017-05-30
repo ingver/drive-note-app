@@ -64,7 +64,8 @@
       :id="item.id"
       :title="item.title"
       :content="item.content"
-      :bg-img="item.bgImg">
+      :bg-img="item.bgImg"
+      @remove-item="removeItem">
     </card>
     <add-item-button
       @add-item="addItem">
@@ -356,6 +357,10 @@ export default {
         this.listData.title = this.editedTitle
         this.$emit('update-title')
       }
+    },
+
+    removeItem(id) {
+      this.$emit('remove-item', id)
     }
   },
 

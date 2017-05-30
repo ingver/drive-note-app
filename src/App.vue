@@ -16,7 +16,9 @@
     :not-found="notFound"
     @update-content="updateContent"
     @update-title="updateTitle"
-    @add-item="addItem"></list-view>
+    @add-item="addItem"
+    @remove-item="removeItem">
+  </list-view>
 </div>
 
 </template>
@@ -176,6 +178,19 @@ export default {
         })
         .catch(err => {
           console.error('caught while trying to add new item:', err)
+        })
+    },
+
+    removeItem(id) {
+      console.log('removing item', id)
+
+      Gapi.trashFile(id)
+        .then(fileMetaResponse => {
+          console.log('successfully moved file to trash:', fileMetaResponse)
+          this.updateList()
+        })
+        .catch(err => {
+          console.error('Caught while moving file to trash:', err)
         })
     }
   },

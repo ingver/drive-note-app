@@ -298,6 +298,18 @@ class Gapi {
 
     return folderPromise
   }
+
+  trashFile(fileId) {
+    console.log('moving file', fileId, 'to trash')
+
+    return this.updateFileMetadata(
+      {
+        fileId,
+        metadata: {
+          trashed: true
+        }
+      })
+  }
 }
 
 export default new Gapi(config)
