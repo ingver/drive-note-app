@@ -290,3 +290,25 @@ export function uploadContent({ contentFileId = '', content = '' }) {
       throw err
     })
 }
+
+export function updateTitle({ listId = '', title = '' }) {
+  if (listId === '') {
+    return Promise.reject(new Error('listId is empty'))
+  } else if (title === '') {
+    return Promise.reject(new Error('title is empty'))
+  }
+
+  return Gapi.updateFileMetadata(
+    {
+      fileId: listId,
+      metadata: {
+        name: title
+      }
+    })
+    .then(fileResponse => {
+      console.log('updated file:', fileResponse)
+    })
+    .catch(err => {
+      console.error('caught while updating node title:', err)
+    })
+}

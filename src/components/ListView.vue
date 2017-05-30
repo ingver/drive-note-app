@@ -15,11 +15,20 @@
   </div>
 
   <div v-else-if="!atRoot" class="content-wrapper">
-    <h2 class="title">
+    <h2 v-if="!titleEditable" class="title"
+      @click="editTitle">
       {{ listData.title }}
     </h2>
+
+    <input v-if="titleEditable" class="title-edit-input"
+      v-model="editedTitle"
+      @keyup.esc="endEditTitle"
+      @keyup.enter="endEditTitle"
+      @blur="titleEditable = false"
+      v-autofocus>
+
     <div class="content-view-group"
-        v-if="!editable">
+        v-if="!contentEditable">
 
       <div class="content-view"
         v-if="listData.content === ''">
@@ -37,15 +46,15 @@
   </div>
 
   <div class="content-edit-group"
-     v-if="editable">
+     v-if="contentEditable">
     <autosize-textarea class="content-edit"
       v-autofocus
       :content="listData.content"
-      @input="handleEdit"
-      @keyup.esc="endEdit">
+      @input="handleEditContent"
+      @keyup.esc="endEditContent">
     </autosize-textarea>
     <button class="button"
-        @click="endEdit">
+        @click="endEditContent">
       Save
     </button>
   </div>
@@ -97,6 +106,7 @@
 
 .title {
   display: block;
+  height: 32px;
   margin: 10px;
   padding: 3px 2px;
   border-radius: 2px;
@@ -106,6 +116,7 @@
   font-weight: bold;
   color: #666;
   word-wrap: break-word;
+  vertical-align: middle;
 
   @media (max-width: 700px) {
     margin: 5px;
@@ -116,8 +127,34 @@
     background-color: rgba(0,0,0,0.02);
   }
 
-  &::selection,
-  & *::selection {
+  &::selection {
+    background: rgba(0,0,0,0.3);
+    color: #fff;
+  }
+}
+
+.title-edit-input {
+  display: block;
+  width: calc(100% - 10px - 10px);
+  height: 32px;
+  margin: 10px;
+  padding: 3px 2px;
+  border-radius: 2px;
+  line-height: 26px;
+  font-size: 26px;
+  font-family: var(--text-font);
+  font-weight: bold;
+  color: #666;
+  outline: none;
+  border: none;
+  box-shadow: none;
+  vertical-align: middle;
+
+  @media (max-width: 700px) {
+    margin: 5px;
+  }
+
+  &::selection {
     background: rgba(0,0,0,0.3);
     color: #fff;
   }
@@ -165,7 +202,7 @@
     }
 
     &::selection,
-    & *::selection {
+    & >>> *::selection {
       background: rgba(0,0,0,0.3);
       color: #fff;
     }
@@ -201,6 +238,11 @@
     @media (max-width: 700px) {
       min-height: 70px;
       padding: 5px;
+    }
+
+    &::selection {
+      background: rgba(0,0,0,0.3);
+      color: #fff;
     }
   }
 }
@@ -272,7 +314,9 @@ export default {
 
   data() {
     return {
-      editable: false
+      contentEditable: false,
+      titleEditable: false,
+      editedTitle: String
     }
   },
 
@@ -284,21 +328,34 @@ export default {
 
   methods: {
     editContent() {
-      this.editable = true
+      this.contentEditable = true
     },
 
-    handleEdit(newContent) {
+    handleEditContent(newContent) {
       this.listData.content = newContent
     },
 
-    endEdit() {
-      this.editable = false
+    endEditContent() {
+      this.contentEditable = false
       this.listData.content = this.listData.content.trim()
       this.$emit('update-content')
     },
 
     addItem() {
       this.$emit('add-item')
+    },
+
+    editTitle() {
+      this.titleEditable = true
+      this.editedTitle = this.listData.title
+    },
+
+    endEditTitle() {
+      this.titleEditable = false
+      if (this.editedTitle !== '' && this.editedTitle !== this.listData.title) {
+        this.listData.title = this.editedTitle
+        this.$emit('update-title')
+      }
     }
   },
 

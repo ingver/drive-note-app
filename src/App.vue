@@ -15,6 +15,7 @@
     :loading="loading"
     :not-found="notFound"
     @update-content="updateContent"
+    @update-title="updateTitle"
     @add-item="addItem"></list-view>
 </div>
 
@@ -152,6 +153,12 @@ export default {
       const { contentFileId, content } = this.currentListData
 
       Drive.uploadContent({ contentFileId, content })
+    },
+
+    updateTitle() {
+      const { title } = this.currentListData
+
+      Drive.updateTitle({ listId: this.currentListId, title })
     },
 
     addItem() {

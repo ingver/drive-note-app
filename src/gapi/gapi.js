@@ -190,6 +190,27 @@ class Gapi {
       })
   }
 
+  updateFileMetadata({ fileId = '', metadata = null }) {
+    console.log('updating file metadata: id =', fileId, ' metadata =', metadata)
+
+    if (fileId === '') {
+      return Promise.reject(new Error('fileId is empty'))
+    }
+    else if (metadata === null) {
+      return Promise.reject(new Error('metadata is empty'))
+    }
+
+    return new Promise(
+      (resolve, reject) => {
+        gapi.client.drive.files.update(
+          Object.assign(
+            {},
+            metadata,
+            { fileId }))
+          .then(resolve, reject)
+      })
+  }
+
   getFileContent(fileId = '') {
     if (fileId === '') {
       throw new Error('fileId is empty')
