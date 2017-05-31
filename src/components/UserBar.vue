@@ -87,8 +87,8 @@
   height: 40px;
   margin: 5px 10px;
   position: relative;
-
   border-radius: 50%;
+  box-shadow: 0px 1px 3px 1px rgba(0,0,0,0.5);
   background-color: #ccc;
   overflow: hidden;
 

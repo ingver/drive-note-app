@@ -197,7 +197,9 @@ export default {
     },
 
     goToTop() {
-      window.location.hash = ''
+      if (this.config !== null) {
+        window.location.hash = this.config.appFolderId
+      }
     }
   },
 
