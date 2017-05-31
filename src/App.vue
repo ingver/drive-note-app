@@ -5,7 +5,8 @@
     :signed-in="signedIn"
     :profile="profile"
     @sign-in="signIn"
-    @sign-out="signOut">
+    @sign-out="signOut"
+    @go-to-top="goToTop">
   </user-bar>
 
   <list-view class="list-view"
@@ -193,6 +194,10 @@ export default {
         .catch(err => {
           console.error('Caught while moving file to trash:', err)
         })
+    },
+
+    goToTop() {
+      window.location.hash = ''
     }
   },
 

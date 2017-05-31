@@ -3,7 +3,10 @@
 <div class="user-bar">
   <button v-if="signedIn" class="button" @click="signOut">Sign Out</button>
   <button v-else class="button" @click="signIn">Sign In</button>
-  <img v-if="signedIn" class="avatar" :src="profileImg">
+  <div v-if="signedIn" class="avatar"
+    @click="goToTop">
+    <img :src="profileImg">
+  </div>
 </div>
 
 </template>
@@ -83,9 +86,38 @@
   width: 40px;
   height: 40px;
   margin: 5px 10px;
+  position: relative;
 
   border-radius: 50%;
   background-color: #ccc;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: transparent;
+    transition: all 0.2s;
+  }
+
+  &:hover::before {
+    content: '\2B06';
+    color: white;
+    line-height: 40px;
+    text-align: center;
+    font-size: 36px;
+    background-color: rgba(0,0,0,0.5);
+  }
+
+  & img {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 </style>
@@ -126,6 +158,10 @@ export default {
 
     signOut() {
       this.$emit('sign-out')
+    },
+
+    goToTop() {
+      this.$emit('go-to-top')
     }
   }
 }

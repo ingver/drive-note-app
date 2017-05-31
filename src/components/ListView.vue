@@ -323,7 +323,10 @@ export default {
 
   computed: {
     listContent() {
-      return marked(this.listData.content)
+      if (this.listData.content !== undefined &&
+          typeof this.listData.content === 'string') {
+        return marked(this.listData.content)
+      }
     }
   },
 

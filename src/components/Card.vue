@@ -189,7 +189,10 @@ export default {
     },
 
     cardContent() {
-      return marked(this.content)
+      if (this.content !== undefined &&
+          typeof this.content === 'string') {
+        return marked(this.content)
+      }
     }
   },
 
