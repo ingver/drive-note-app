@@ -173,10 +173,13 @@ class Gapi {
       })
   }
 
-  getFileMetadata({ fileId = '', trashed = false, fields = ['id', 'name', 'trashed', 'parents'] }) {
+  getFileMetadata({ fileId = '', trashed = false }) {
     if (fileId === '') {
       throw new Error('fileId empty')
     }
+
+    const fields = ['id', 'name', 'trashed', 'parents']
+
     return new Promise(
       (resolve, reject) => {
         gapi.client.drive.files.get(

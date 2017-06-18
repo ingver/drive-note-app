@@ -85,7 +85,6 @@ export async function initDriveStorage() {
     try {
       await Gapi.getFileMetadata({
         fileId: config.appFolderId,
-        trashed: false
       })
     } catch (err) {
       console.error('config is invalid: ', err)
@@ -122,90 +121,6 @@ export async function initDriveStorage() {
   }
 }
 
-export async function getNode(listId) {
-  /*
-   * Get list node metadata
-   */
-  let folder
-  try {
-    folder = await Gapi.getFileMetadata({
-      fileId: listId,
-      fields: ['name', 'parents', 'trashed']
-    })
-  } catch (err) {
-    console.error(`Cannot find folder with id ${listId}:`, err)
-    throw err
-  }
-  console.log('got folder:', folder)
-
-  /*
-   * Save node metadata
-   */
-  const listData = {
-    title: folder.name,
-    parents: folder.parents,
-  }
-
-  /*
-   * Get node content
-   */
-  try {
-    const nodeContent = await getNodeContent(listId)
-    Object.assign(listData, nodeContent)
-  } catch (err) {
-    console.error('failed to get node content:', err)
-    throw err
-  }
-
-  /*
-   * Get list of child nodes
-   */
-  let children
-  try {
-    children = await Gapi.listFiles({
-      q: `'${listId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
-      fields: 'files(id, name, trashed, parents)'
-    })
-  } catch (err) {
-    console.error(`Couldn't get children of list with id ${listId}:`, err)
-    throw err
-  }
-
-  /*
-   * Save children metadata
-   */
-  console.log('listData:', listData)
-  console.log('items list:', children)
-
-  const items = await Promise.all(
-    children.map(async (c) => {
-      const meta = {
-        id: c.id,
-        title: c.name
-      }
-
-      let content
-      try {
-        content = await getNodeContent(c.id)
-      } catch (err) {
-        console.error('failed to get content of node', c.id)
-        return meta
-      }
-
-      return Object.assign(
-        {},
-        content,
-        meta)
-    })
-  )
-  console.log('got children', items)
-
-  return Object.assign(
-    {},
-    listData,
-    { items })
-}
-
 export async function uploadContent({ contentFileId = '', content = '' }) {
   if (contentFileId === '') {
     throw new Error(`contentFileId is empty`)
@@ -238,9 +153,112 @@ export async function updateTitle({ listId = '', title = '' }) {
   }
 }
 
+export async function getNode(listId = '') {
+  if (listId === '') {
+    throw new Error('getNode: listId is empty')
+  }
+
+  const folder = await getNodeMetadata(listId)
+  console.log('got folder:', folder)
+
+  /*
+   * Save node metadata
+   */
+  const listData = {
+    title: folder.name,
+  }
+
+  /*
+   * Get node content
+   */
+  try {
+    const nodeContent = await getNodeContent(listId)
+    Object.assign(listData, nodeContent)
+  } catch (err) {
+    console.error('failed to get node content:', err)
+    throw err
+  }
+
+  const children = await getNodeChildren(listId)
+
+  console.log('listData:', listData)
+  console.log('items list:', children)
+
+  /*
+   * Load children contents
+   */
+  const items = await Promise.all(
+    children.map(async (c) => {
+      const meta = {
+        id: c.id,
+        title: c.name
+      }
+
+      let content
+      try {
+        content = await getNodeContent(c.id)
+      } catch (err) {
+        console.error('failed to get content of node', c.id)
+        return meta
+      }
+
+      return Object.assign(
+        {},
+        content,
+        meta)
+    })
+  )
+  console.log('got children', items)
+
+  return Object.assign(
+    {},
+    listData,
+    { items })
+}
+
+export async function getNodeMetadata(listId = '') {
+  if (listId === '') {
+    throw new Error('getNodeMetadata: listId is empty')
+  }
+
+  /*
+   * Get list node metadata
+   */
+  try {
+    const { id, name } = await Gapi.getFileMetadata({
+      fileId: listId,
+    })
+
+    return { id, name }
+  } catch (err) {
+    console.error(`Cannot find folder with id ${listId}:`, err)
+    throw err
+  }
+}
+
+export async function getNodeChildren(listId = '') {
+  if (listId === '') {
+    throw new Error('getNodeChildren: listId is empty')
+  }
+
+  /*
+   * Get list of child nodes
+   */
+  let children
+  try {
+    return await Gapi.listFiles({
+      q: `'${listId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
+      fields: 'files(id, name, trashed, parents)'
+    })
+  } catch (err) {
+    console.error(`Couldn't get children of list with id ${listId}:`, err)
+    throw err
+  }
+}
+
 export async function getNodeContent(listId = '') {
   if (listId === '') {
-    throw new Error('listId is empty')
+    throw new Error('getNodeContent: listId is empty')
   }
 
   try {
@@ -285,4 +303,25 @@ export async function getNodeContent(listId = '') {
     console.error(`Couldn't load list content:`, err)
     throw err
   }
+}
+
+export async function loadFullOutline(rootId = '') {
+  if (rootId === '') {
+    throw new Error('loadFullOutline: rootId is empty')
+  }
+
+  const root = await getNodeMetadata(rootId)
+
+  const childrenList = await getNodeChildren(rootId)
+
+  const fullChildren = await Promise.all(
+    childrenList.map(async (c) => {
+      return await loadFullOutline(c.id)
+    })
+  )
+
+  return Object.assign(
+    {},
+    root,
+    { children: fullChildren })
 }
