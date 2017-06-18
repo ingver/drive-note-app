@@ -1,6 +1,10 @@
 import * as config from './config.js'
 import Profile from './profile.js'
 
+function getErrorMessage(errResponse) {
+  return errResponse.result.error.message
+}
+
 class Gapi {
   constructor(params) {
     const {
@@ -88,7 +92,9 @@ class Gapi {
     return new Promise(
       (resolve, reject) => {
         gapi.client.drive.files.list(query)
-          .then(resolve, reject)
+          .then(response => {
+            resolve(response.result.files)
+          }, reject)
       })
   }
 
@@ -168,7 +174,6 @@ class Gapi {
   }
 
   getFileMetadata({ fileId = '', trashed = false, fields = ['id', 'name', 'trashed', 'parents'] }) {
-    console.log('getFileMetadata: fileId=', fileId, ' trashed=', trashed, ' fields=', fields)
     if (fileId === '') {
       throw new Error('fileId empty')
     }
@@ -240,63 +245,47 @@ class Gapi {
             parents,
             fields: 'id'
           })
-          .then(resolve, reject)
+          .then(response => {
+            console.log(`CREATED FOLDER:::::::::`, response)
+            resolve(response)
+          }, reject)
       })
   }
 
-  findUntrashedFolder({ name, parent = '', fields = []}) {
+  async ensureFolderExists({ name = '', parent = '' }) {
+    console.log(`Ensuring '${name}' folder exists`)
+
     let query = `name = '${name}'`
     if (parent !== '') {
       query = query + ` and '${parent}' in parents`
     }
     query = query + ` and trashed = false`
+    const fields = ['id', 'name', 'parents', 'trashed']
 
-    const folderListPromise = this.listFiles(
-      {
+    try {
+      const folderList = await this.listFiles({
         q: query,
         fields: `files(${fields.join(',')})`
       })
-      .then(response => {
-        const files = response.result.files
-        return files
-      })
-      .catch(err => {
-        console.error('caught error in findUntrashedFolder:', err)
-        throw err
-      })
 
-    return folderListPromise
-  }
+      /* if no folder found, than create one */
+      if (folderList.length === 0) {
+        console.warn(`No '${name}' folders found`)
+        return this.createFolder(
+          {
+            name,
+            parents: [parent]
+          })
+          .then(newFolder => newFolder.result)
+      }
 
-  ensureFolderExists({ name, parent = '' }) {
-    console.log(`Ensuring '${name}' folder exists`)
+      /* otherwise take first */
+      return folderList[0]
 
-    const folderPromise = this.findUntrashedFolder(
-      {
-        name,
-        parent,
-        fields: ['id', 'name', 'parents', 'trashed']
-      })
-      .then(listOfFolders => {
-        /* if no folder found, than create one */
-        if (listOfFolders.length === 0) {
-          console.warn(`No '${name}' folders found`)
-          return this.createFolder(
-            {
-              name,
-              parents: [parent]
-            })
-            .then(newFolder => newFolder.result)
-        }
-        /* otherwise take first */
-        return listOfFolders[0]
-      })
-      .catch(err => {
-        console.error('caught error in ensureFolderExists:', err)
-        throw err
-      })
-
-    return folderPromise
+    } catch (err) {
+      console.error('caught error in ensureFolderExists:', err)
+      throw err
+    }
   }
 
   trashFile(fileId) {
