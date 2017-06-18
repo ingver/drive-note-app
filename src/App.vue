@@ -10,13 +10,14 @@
   </user-bar>
 
   <list-view class="list-view"
-    :list-data="currentListData"
+    :list-data="currentTreeNode"
     :signedIn="signedIn"
     :at-root="atRoot"
     :loading="loading"
     :not-found="notFound"
     @update-content="updateContent"
     @update-title="updateTitle"
+    @load-item="loadItem"
     @add-item="addItem"
     @remove-item="removeItem">
   </list-view>
@@ -57,6 +58,7 @@ import * as Drive from './gapi/drive-utils.js'
 import Profile from './gapi/profile.js'
 import UserBar from './components/UserBar.vue'
 import ListView from './components/ListView.vue'
+import { flattenTree } from './utils.js'
 
 export default {
   name: 'app',
@@ -70,7 +72,9 @@ export default {
       signedIn: false,
       profile: null,
       currentListId: '',
-      currentListData: null,
+      treeData: null,
+      currentTreeNode: null,
+      nodesRegister: null,
       config: null,
       atRoot: false,
       loading: true,
@@ -90,7 +94,7 @@ export default {
       Gapi.listenUserStatus(this.changeStatus)
       Gapi.listenCurrentUser(this.changeProfile)
 
-      window.addEventListener('hashchange', this.updateList)
+      window.onpopstate = this.onPopState
 
     } catch(err) {
       console.error('gapi couldn\'t load client:', err)
@@ -139,7 +143,7 @@ export default {
 
         try {
           const listData = await Drive.getNode(this.currentListId)
-          this.currentListData = listData
+          this.treeData = listData
           this.atRoot = this.currentListId === this.config.appFolderId
           this.loading = false
         } catch(err) {
@@ -148,18 +152,18 @@ export default {
         }
       } else {
         console.log('not signed in')
-        this.currentListData = null
+        this.treeData = null
       }
     },
 
     updateContent() {
-      const { contentFileId, content } = this.currentListData
+      const { contentFileId, content } = this.treeData
 
       Drive.uploadContent({ contentFileId, content })
     },
 
     async updateTitle() {
-      const { title } = this.currentListData
+      const { title } = this.treeData
 
       try {
         await Drive.updateTitle({ listId: this.currentListId, title })
@@ -198,32 +202,60 @@ export default {
     },
 
     goToTop() {
-      if (this.config !== null) {
-        window.location.hash = this.config.appFolderId
+      if (this.treeData !== null) {
+        this.currentTreeNode = this.treeData
       }
-    }
+    },
+
+    loadItem(item) {
+      console.log(`loading item ${item.id}`)
+      this.currentTreeNode = item
+      history.pushState({ id: item.id }, item.id, `${item.id}`)
+    },
+
+    async onPopState(e) {
+      console.log(e)
+      //console.log(`prevItem:`, e.state.path)
+      this.currentTreeNode = this.nodesRegister[e.state.id].node
+    },
   },
 
   watch: {
     signedIn: async function() {
       if (this.signedIn) {
-        try {
-          const config = await Drive.initDriveStorage()
-          console.log('got initialized config:', config)
-          this.config = config
+        const localTreeDataJSON = window.localStorage.getItem('tree-data')
 
-          if (window.location.hash === '') {
-            window.location.hash = this.config.appFolderId
-            console.log(window.location.hash)
-          } else {
-            this.updateList()
+        if (localTreeDataJSON === null) {
+          console.warn(`can't load local list data`)
+          this.loading = true
+
+          try {
+            const config = await Drive.initDriveStorage()
+            console.log('got initialized config:', config)
+
+            const fullTree = await Drive.getFullOutline(config.appFolderId)
+            this.treeData = fullTree
+            window.localStorage.setItem('tree-data', JSON.stringify(fullTree))
+
+          } catch(err) {
+            console.error('failed to init Drive storage:', err)
           }
-        } catch(err) {
-          console.error('failed to init Drive storage:', err)
+        } else {
+          this.treeData = JSON.parse(localTreeDataJSON)
+          console.log(`got treeData:`, this.treeData)
         }
+
+        this.currentTreeNode = this.treeData
+        this.nodesRegister = flattenTree({ tree: this.treeData })
+        this.atRoot = true
+        this.loading = false
+
+        const id = this.currentTreeNode.id
+        window.history.replaceState({ id }, id, `${id}`)
+
       } else {
         this.config = null
-        this.currentListData = null
+        this.treeData = null
       }
     }
   }

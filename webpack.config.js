@@ -35,6 +35,7 @@ const config = {
     hot: true,
     noInfo: true,
     overlay: true,
+    historyApiFallback: true
   }
 }
 

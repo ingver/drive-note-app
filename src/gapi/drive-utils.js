@@ -305,9 +305,9 @@ export async function getNodeContent(listId = '') {
   }
 }
 
-export async function loadFullOutline(rootId = '') {
+export async function getFullOutline(rootId = '') {
   if (rootId === '') {
-    throw new Error('loadFullOutline: rootId is empty')
+    throw new Error('getFullOutline: rootId is empty')
   }
 
   const root = await getNodeMetadata(rootId)
@@ -316,12 +316,12 @@ export async function loadFullOutline(rootId = '') {
 
   const fullChildren = await Promise.all(
     childrenList.map(async (c) => {
-      return await loadFullOutline(c.id)
+      return await getFullOutline(c.id)
     })
   )
 
   return Object.assign(
     {},
     root,
-    { children: fullChildren })
+    { items: fullChildren })
 }

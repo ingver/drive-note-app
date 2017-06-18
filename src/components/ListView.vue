@@ -64,10 +64,12 @@
 
   <div v-if="!loading && listData !== null" class="cards">
     <card v-for="item in listData.items" :key="item.id"
+      :itemData="item"
       :id="item.id"
-      :title="item.title"
+      :title="item.name"
       :content="item.content"
       :bg-img="item.bgImg"
+      @load-item="loadItem"
       @remove-item="removeItem">
     </card>
     <add-item-button
@@ -368,6 +370,10 @@ export default {
         this.listData.title = this.editedTitle
         this.$emit('update-title')
       }
+    },
+
+    loadItem(item) {
+      this.$emit('load-item', item)
     },
 
     removeItem(id) {

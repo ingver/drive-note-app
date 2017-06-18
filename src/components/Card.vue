@@ -1,15 +1,15 @@
 <template>
 
-<a class="card"
+<div class="card"
     :style="cardStyles"
     :href="link"
-    @click="changeHash(link)">
+    @click="loadLink">
   <h3 class="title">{{ title }}</h3>
   <button class="menu-button" @click.prevent.stop="removeItem"></button>
   <div class="content"
     v-html="cardContent">
   </div>
-</a>
+</div>
 
 </template>
 
@@ -166,6 +166,7 @@ import marked from 'marked'
 export default {
   name: 'card',
   props: {
+    itemData: Object,
     id: String,
     title: String,
     content: String,
@@ -197,11 +198,8 @@ export default {
   },
 
   methods: {
-    changeHash(link = '') {
-      if (link === '') {
-        return
-      }
-      window.location.hash = link
+    loadLink() {
+      this.$emit('load-item', this.itemData)
     },
 
     showMenu(e) {},
