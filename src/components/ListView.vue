@@ -17,25 +17,27 @@
   <div v-else-if="!atRoot" class="content-wrapper">
     <h2 v-if="!titleEditable" class="title"
       @click="editTitle">
-      {{ listData.title }}
+      {{ listData === null ? '' : listData.title }}
     </h2>
 
     <input v-if="titleEditable" class="title-edit-input"
       v-model="editedTitle"
       @keyup.esc="endEditTitle"
       @keyup.enter="endEditTitle"
-      @blur="titleEditable = false"
+      @blur="endEditTitle"
       v-autofocus>
 
     <div class="content-view-group"
         v-if="!contentEditable">
 
       <div class="content-view"
-        v-if="listData.content === ''">
+        v-if="listData.content === ''"
+        @click="editContent">
         <p class="empty-content">No content here yet (click EDIT to add some)</p>
       </div>
       <div class="content-view"
-        v-else v-html="listContent">
+        v-else v-html="listContent"
+        @click="editContent">
       </div>
 
       <button class="button edit-button"
@@ -49,9 +51,10 @@
      v-if="contentEditable">
     <autosize-textarea class="content-edit"
       v-autofocus
-      :content="listData.content"
+      :content="editedContent"
       @input="handleEditContent"
-      @keyup.esc="endEditContent">
+      @cancel-edit="cancelEditContent"
+      @end-edit="endEditContent">
     </autosize-textarea>
     <button class="button"
         @click="endEditContent">
@@ -317,7 +320,8 @@ export default {
     return {
       contentEditable: false,
       titleEditable: false,
-      editedTitle: String
+      editedTitle: this.listData === null ? '' : this.listData.title,
+      editedContent: this.listData === null ? '' : this.listData.content
     }
   },
 
@@ -336,12 +340,16 @@ export default {
     },
 
     handleEditContent(newContent) {
-      this.listData.content = newContent
+      this.editedContent = newContent
+    },
+
+    cancelEditContent() {
+      this.contentEditable = false
     },
 
     endEditContent() {
       this.contentEditable = false
-      this.listData.content = this.listData.content.trim()
+      this.listData.content = this.editedContent.trim()
       this.$emit('update-content')
     },
 
@@ -364,6 +372,17 @@ export default {
 
     removeItem(id) {
       this.$emit('remove-item', id)
+    }
+  },
+
+  watch: {
+    listData: function() {
+      if ('content' in this.listData) {
+        this.editedContent = this.listData.content
+      }
+      if ('title' in this.listData) {
+        this.editedTitle = this.listData.title
+      }
     }
   },
 

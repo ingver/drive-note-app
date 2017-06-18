@@ -1,5 +1,9 @@
 <template>
-  <textarea @input="changeContent">{{ content }}</textarea>
+  <textarea
+    @input="changeContent"
+    @keyup.ctrl.enter="endEdit"
+    @keyup.meta.enter="endEdit"
+    @keyup.esc="cancelEdit">{{ content }}</textarea>
 </template>
 
 <script>
@@ -17,6 +21,14 @@ export default {
   methods: {
     changeContent() {
       this.$emit('input', this.$el.value);
+    },
+
+    cancelEdit() {
+      this.$emit('cancel-edit')
+    },
+
+    endEdit(e) {
+      this.$emit('end-edit')
     }
   }
 }

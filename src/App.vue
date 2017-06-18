@@ -90,7 +90,7 @@ export default {
       Gapi.listenUserStatus(this.changeStatus)
       Gapi.listenCurrentUser(this.changeProfile)
 
-      window.addEventListener('hashchange', this.updateList.bind(this))
+      window.addEventListener('hashchange', this.updateList)
 
     } catch(err) {
       console.error('gapi couldn\'t load client:', err)
