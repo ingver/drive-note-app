@@ -78,39 +78,39 @@ export default {
     }
   },
 
-  created() {
+  async created() {
     console.log(Gapi)
-    Gapi.loadClient()
-      .then(() => {
-        console.log('gapi loaded client')
-      })
-      .then(() => {
-        // assign initial values
-        this.signedIn = Gapi.isSignedIn()
-        this.profile = Gapi.getUserProfile()
-        // register listeners
-        Gapi.listenUserStatus(this.changeStatus)
-        Gapi.listenCurrentUser(this.changeProfile)
+    try {
+      await Gapi.loadClient()
+      console.log('gapi loaded client')
+      // assign initial values
+      this.signedIn = Gapi.isSignedIn()
+      this.profile = Gapi.getUserProfile()
+      // register listeners
+      Gapi.listenUserStatus(this.changeStatus)
+      Gapi.listenCurrentUser(this.changeProfile)
 
-        window.addEventListener('hashchange', this.updateList.bind(this))
-      })
-      .catch(err => console.error('gapi couldn\'t load client:', err))
+      window.addEventListener('hashchange', this.updateList.bind(this))
+
+    } catch(err) {
+      console.error('gapi couldn\'t load client:', err)
+    }
   },
 
   methods: {
-    signIn() {
-      Gapi.signIn()
-        .then(user => {
-          console.log('successfully signed in')
-        })
-        .catch(err => console.error('failed to sign in:', err))
-
+    async signIn() {
+      try {
+        await Gapi.signIn()
+        console.log('successfully signed in')
+      } catch(err) {
+        console.error('failed to sign in:', err)
+      }
       this.loading = true
     },
 
-    signOut() {
-      Gapi.signOut()
-        .then(() => console.log('successfull signed out'))
+    async signOut() {
+      await Gapi.signOut()
+      console.log('successfull signed out')
     },
 
     changeStatus(status) {
@@ -123,7 +123,7 @@ export default {
       this.profile = new Profile(user)
     },
 
-    updateList() {
+    async updateList() {
       console.log('invoked loadData...')
       this.notFound = false
       if (this.signedIn) {
@@ -137,16 +137,15 @@ export default {
         }
         console.log('current list id:', this.currentListId)
 
-        Drive.getNode(this.currentListId)
-          .then(listData => {
-            this.currentListData = listData
-            this.atRoot = this.currentListId === this.config.appFolderId
-            this.loading = false
-          })
-          .catch(err => {
-            console.error('failed to update the list:', err)
-            this.notFound = true
-          })
+        try {
+          const listData = await Drive.getNode(this.currentListId)
+          this.currentListData = listData
+          this.atRoot = this.currentListId === this.config.appFolderId
+          this.loading = false
+        } catch(err) {
+          console.error('failed to update the list:', err)
+          this.notFound = true
+        }
       } else {
         console.log('not signed in')
         this.currentListData = null
@@ -159,41 +158,43 @@ export default {
       Drive.uploadContent({ contentFileId, content })
     },
 
-    updateTitle() {
+    async updateTitle() {
       const { title } = this.currentListData
 
-      Drive.updateTitle({ listId: this.currentListId, title })
+      try {
+        await Drive.updateTitle({ listId: this.currentListId, title })
+        console.log('updated title')
+      } catch (err) {
+        console.error('caugth while trying to update title:', err)
+      }
     },
 
-    addItem() {
+    async addItem() {
       console.log('adding new item')
 
-      Gapi.createFolder(
-        {
+      try {
+        const folderResponse = await Gapi.createFolder({
           name: 'New Item',
           parents: [`${this.currentListId}`]
         })
-        .then(folderResponse => {
-          console.log(`new item created:`, folderResponse)
-          const folder = folderResponse.result
-          window.location.hash = folder.id
-        })
-        .catch(err => {
-          console.error('caught while trying to add new item:', err)
-        })
+        console.log(`new item created:`, folderResponse)
+        const folder = folderResponse.result
+        window.location.hash = folder.id
+      } catch(err) {
+        console.error('caught while trying to add new item:', err)
+      }
     },
 
-    removeItem(id) {
+    async removeItem(id) {
       console.log('removing item', id)
 
-      Gapi.trashFile(id)
-        .then(fileMetaResponse => {
-          console.log('successfully moved file to trash:', fileMetaResponse)
-          this.updateList()
-        })
-        .catch(err => {
-          console.error('Caught while moving file to trash:', err)
-        })
+      try {
+        await Gapi.trashFile(id)
+        console.log('successfully moved file to trash:', fileMetaResponse)
+        this.updateList()
+      } catch(err) {
+        console.error('Caught while moving file to trash:', err)
+      }
     },
 
     goToTop() {
@@ -204,23 +205,22 @@ export default {
   },
 
   watch: {
-    signedIn: function() {
+    signedIn: async function() {
       if (this.signedIn) {
-        Drive.initDriveStorage()
-          .catch(err => {
-            console.error('failed to init Drive storage:', err)
-          })
-          .then(config => {
-            console.log('got initialized config:', config)
-            this.config = config
+        try {
+          const config = await Drive.initDriveStorage()
+          console.log('got initialized config:', config)
+          this.config = config
 
-            if (window.location.hash === '') {
-              window.location.hash = this.config.appFolderId
-              console.log(window.location.hash)
-            } else {
-              this.updateList()
-            }
-          })
+          if (window.location.hash === '') {
+            window.location.hash = this.config.appFolderId
+            console.log(window.location.hash)
+          } else {
+            this.updateList()
+          }
+        } catch(err) {
+          console.error('failed to init Drive storage:', err)
+        }
       } else {
         this.config = null
         this.currentListData = null
