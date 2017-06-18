@@ -166,7 +166,6 @@ import marked from 'marked'
 export default {
   name: 'card',
   props: {
-    itemData: Object,
     id: String,
     title: String,
     content: String,
@@ -199,7 +198,7 @@ export default {
 
   methods: {
     loadLink() {
-      this.$emit('load-item', this.itemData)
+      this.$emit('load-item', this.id)
     },
 
     showMenu(e) {},

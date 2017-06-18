@@ -15,6 +15,8 @@
   </div>
 
   <div v-else-if="!atRoot" class="content-wrapper">
+    <button class="up"
+      @click="goUp">↑ Up</button>
     <h2 v-if="!titleEditable" class="title"
       @click="editTitle">
       {{ listData === null ? '' : listData.title }}
@@ -372,12 +374,16 @@ export default {
       }
     },
 
-    loadItem(item) {
-      this.$emit('load-item', item)
+    loadItem(id) {
+      this.$emit('load-item', id)
     },
 
     removeItem(id) {
       this.$emit('remove-item', id)
+    },
+
+    goUp() {
+      this.$emit('go-up', this.listData.id)
     }
   },
 

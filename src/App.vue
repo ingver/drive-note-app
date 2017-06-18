@@ -19,7 +19,8 @@
     @update-title="updateTitle"
     @load-item="loadItem"
     @add-item="addItem"
-    @remove-item="removeItem">
+    @remove-item="removeItem"
+    @go-up="goUp">
   </list-view>
 </div>
 
@@ -203,21 +204,35 @@ export default {
 
     goToTop() {
       if (this.treeData !== null) {
-        this.currentTreeNode = this.treeData
+        this.loadItem(this.treeData.id)
       }
     },
 
-    loadItem(item) {
-      console.log(`loading item ${item.id}`)
-      this.currentTreeNode = item
-      history.pushState({ id: item.id }, item.id, `${item.id}`)
+    loadItem(id) {
+      console.log(`loading item ${id}`)
+      const { node = null } = this.nodesRegister[id]
+      if (node !== null) {
+        this.currentTreeNode = node
+        history.pushState({ id }, id, `${id}`)
+        this.atRoot = node.id === this.treeData.id
+      }
     },
 
     async onPopState(e) {
       console.log(e)
-      //console.log(`prevItem:`, e.state.path)
-      this.currentTreeNode = this.nodesRegister[e.state.id].node
+      const { node = null } = this.nodesRegister[e.state.id]
+      if (node !== null) {
+        this.currentTreeNode = node
+        this.atRoot = node.id === this.treeData.id
+      }
     },
+
+    goUp(id) {
+      const { parent } = this.nodesRegister[id]
+      if (parent !== null) {
+        this.loadItem(parent.id)
+      }
+    }
   },
 
   watch: {
@@ -245,9 +260,20 @@ export default {
           console.log(`got treeData:`, this.treeData)
         }
 
-        this.currentTreeNode = this.treeData
         this.nodesRegister = flattenTree({ tree: this.treeData })
+        const path = window.location.pathname.slice(1)
+        console.log('path:', path)
+        this.currentTreeNode = this.treeData
         this.atRoot = true
+        if (path !== '') {
+          const { node = null } = this.nodesRegister[path]
+          if (node !== null) {
+            this.currentTreeNode = node
+            if (node.id !== this.treeData.id) {
+              this.atRoot = false
+            }
+          }
+        }
         this.loading = false
 
         const id = this.currentTreeNode.id
