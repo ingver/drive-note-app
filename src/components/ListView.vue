@@ -10,6 +10,11 @@
     <a class="go-to-top" href="/">Go to top list</a>
   </div>
 
+  <div v-else-if="error" class="error-banner banner">
+    <p class="error-msg">{{ errorMsg }}</p>
+    <a class="refresh" href="" @click="window.location.reload()">Refresh</a>
+  </div>
+
   <div v-else-if="loading" class="loading-banner banner">
     <p class="notification">Loading...</p>
   </div>
@@ -19,7 +24,7 @@
       @click="goUp">↑ Up</button>
     <h2 v-if="!titleEditable" class="title"
       @click="editTitle">
-      {{ listData === null ? '' : listData.title }}
+      {{ listData === null ? '' : listData.name }}
     </h2>
 
     <input v-if="titleEditable" class="title-edit-input"
@@ -33,7 +38,11 @@
         v-if="!contentEditable">
 
       <div class="content-view"
-        v-if="listData.content === ''"
+        v-if="contentLoading">
+        <p class="empty-content">Loading...</p>
+      </div>
+      <div class="content-view"
+        v-else-if="content === ''"
         @click="editContent">
         <p class="empty-content">No content here yet (click EDIT to add some)</p>
       </div>
@@ -294,6 +303,17 @@
     text-align: center;
   }
 }
+
+.error-banner {
+  & .error-msg {
+    color: rgba(255,0,0,0.4);
+  }
+
+  & .refresh {
+    display: block;
+    text-align: center;
+  }
+}
 </style>
 
 
@@ -314,26 +334,30 @@ export default {
   },
   props: {
     listData: Object,
+    content: String,
     signedIn: Boolean,
     atRoot: Boolean,
     loading: Boolean,
-    notFound: Boolean
+    notFound: Boolean,
+    contentLoading: Boolean,
+    error: Boolean,
+    errorMsg: String
   },
 
   data() {
     return {
       contentEditable: false,
       titleEditable: false,
-      editedTitle: this.listData === null ? '' : this.listData.title,
+      editedTitle: this.listData === null ? '' : this.listData.name,
       editedContent: this.listData === null ? '' : this.listData.content
     }
   },
 
   computed: {
     listContent() {
-      if (this.listData.content !== undefined &&
-          typeof this.listData.content === 'string') {
-        return marked(this.listData.content)
+      if (this.content !== null && this.content !== '' &&
+          typeof this.content === 'string') {
+        return marked(this.content)
       }
     }
   },
@@ -353,8 +377,8 @@ export default {
 
     endEditContent() {
       this.contentEditable = false
-      this.listData.content = this.editedContent.trim()
-      this.$emit('update-content')
+      this.editedContent = this.editedContent.trim()
+      this.$emit('update-content', this.listData.id, this.editedContent)
     },
 
     addItem() {
@@ -363,38 +387,52 @@ export default {
 
     editTitle() {
       this.titleEditable = true
-      this.editedTitle = this.listData.title
+      this.editedTitle = this.listData.name
     },
 
     endEditTitle() {
       this.titleEditable = false
-      if (this.editedTitle !== '' && this.editedTitle !== this.listData.title) {
-        this.listData.title = this.editedTitle
+      if (this.editedTitle !== '' && this.editedTitle !== this.listData.name) {
+        this.listData.name = this.editedTitle
         this.$emit('update-title')
       }
     },
 
     loadItem(id) {
       this.$emit('load-item', id)
+      this.titleEditable = false
+      this.contentEditable = false
     },
 
     removeItem(id) {
       this.$emit('remove-item', id)
+      this.titleEditable = false
+      this.contentEditable = false
     },
 
     goUp() {
       this.$emit('go-up', this.listData.id)
+      this.titleEditable = false
+      this.contentEditable = false
     }
   },
 
   watch: {
     listData: function() {
-      if ('content' in this.listData) {
-        this.editedContent = this.listData.content
+      this.titleEditable = false
+      this.contentEditable = false
+      if (this.listData !== null) {
+        if ('content' in this.listData) {
+          this.editedContent = this.listData.content
+        }
+        if ('name' in this.listData) {
+          this.editedTitle = this.listData.name
+        }
       }
-      if ('title' in this.listData) {
-        this.editedTitle = this.listData.title
-      }
+    },
+
+    content: function() {
+      this.editedContent = this.content
     }
   },
 

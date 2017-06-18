@@ -11,10 +11,14 @@
 
   <list-view class="list-view"
     :list-data="currentTreeNode"
+    :content="currentNodeContent"
     :signedIn="signedIn"
     :at-root="atRoot"
     :loading="loading"
     :not-found="notFound"
+    :content-loading="contentLoading"
+    :error="error"
+    :error-msg="errorMsg"
     @update-content="updateContent"
     @update-title="updateTitle"
     @load-item="loadItem"
@@ -72,14 +76,16 @@ export default {
     return {
       signedIn: false,
       profile: null,
-      currentListId: '',
       treeData: null,
       currentTreeNode: null,
       nodesRegister: null,
-      config: null,
+      currentNodeContent: '',
       atRoot: false,
       loading: true,
-      notFound: false
+      contentLoading: false,
+      notFound: false,
+      error: false,
+      errorMsg: ''
     }
   },
 
@@ -114,6 +120,7 @@ export default {
     },
 
     async signOut() {
+      window.localStorage.clear()
       await Gapi.signOut()
       console.log('successfull signed out')
     },
@@ -157,18 +164,42 @@ export default {
       }
     },
 
-    updateContent() {
-      const { contentFileId, content } = this.treeData
+    async updateTree() {
+      if (this.treeData !== null) {
+        window.localStorage.setItem('tree-data', JSON.stringify(this.treeData))
+        console.log(`updated tree-data:`, JSON.parse(window.localStorage.getItem('tree-data')))
+      }
+    },
 
-      Drive.uploadContent({ contentFileId, content })
+    async updateContent(id, editedContent) {
+      console.log(`updating content:`, editedContent)
+
+      const entry = this.nodesRegister[id]
+      const { contentMeta = null } = entry
+
+
+      if (contentMeta !== null) {
+        Object.assign(contentMeta, { content: editedContent })
+        this.currentNodeContent = editedContent
+
+        try {
+          await Drive.uploadContent({
+            contentFileId: contentMeta.contentFileId,
+            content: editedContent
+          })
+        } catch (err) {
+          console.error('caught while trying to updload content', err)
+        }
+      }
     },
 
     async updateTitle() {
-      const { title } = this.treeData
+      const { id, name } = this.currentTreeNode
 
       try {
-        await Drive.updateTitle({ listId: this.currentListId, title })
+        await Drive.updateTitle({ listId: id, title: name })
         console.log('updated title')
+        this.updateTree()
       } catch (err) {
         console.error('caugth while trying to update title:', err)
       }
@@ -178,13 +209,31 @@ export default {
       console.log('adding new item')
 
       try {
+        const newItemName = 'New Item'
+
         const folderResponse = await Gapi.createFolder({
-          name: 'New Item',
-          parents: [`${this.currentListId}`]
+          name: newItemName,
+          parents: [`${this.currentTreeNode.id}`]
         })
-        console.log(`new item created:`, folderResponse)
         const folder = folderResponse.result
-        window.location.hash = folder.id
+        console.log(`new item created:`, folder)
+
+        const node = {
+          id: folder.id,
+          name: newItemName,
+          items: []
+        }
+        this.currentTreeNode.items.push(node)
+
+        const newEntry = {
+          node,
+          parent: this.currentTreeNode
+        }
+        this.nodesRegister[folder.id] = newEntry
+
+        this.loadItem(folder.id)
+        this.updateTree()
+
       } catch(err) {
         console.error('caught while trying to add new item:', err)
       }
@@ -194,9 +243,18 @@ export default {
       console.log('removing item', id)
 
       try {
-        await Gapi.trashFile(id)
+        const fileMetaResponse = await Gapi.trashFile(id)
         console.log('successfully moved file to trash:', fileMetaResponse)
-        this.updateList()
+
+        const { node = null, parent = null } = this.nodesRegister[id]
+        if (node !== null && parent !== null) {
+          const idx = parent.items.indexOf(node)
+          if (idx !== -1) {
+            parent.items.splice(idx, 1)
+            this.updateTree()
+          }
+        }
+
       } catch(err) {
         console.error('Caught while moving file to trash:', err)
       }
@@ -208,22 +266,52 @@ export default {
       }
     },
 
-    loadItem(id) {
+    async loadItem(id) {
+      this.notFound = false
+      this.currentNodeContent = ''
       console.log(`loading item ${id}`)
-      const { node = null } = this.nodesRegister[id]
+      const entry = this.nodesRegister[id]
+      console.log(`entry:`, entry)
+      const { node = null } = entry
       if (node !== null) {
         this.currentTreeNode = node
         history.pushState({ id }, id, `${id}`)
         this.atRoot = node.id === this.treeData.id
+
+        this.loadItemContent(entry)
+      } else {
+        this.notFound = true
       }
+    },
+
+    async loadItemContent(entry) {
+      console.log(`entry:`, entry)
+      this.contentLoading = true
+      if ('contentMeta' in entry) {
+        console.log(`applying cashed content`, entry.contentMeta.content)
+        this.currentNodeContent = entry.contentMeta.content
+      } else {
+        try {
+          const contentMeta = await Drive.getNodeContent(entry.node.id)
+          console.log(`loaded node content`, contentMeta)
+          Object.assign(entry, { contentMeta })
+          this.currentNodeContent = contentMeta.content
+        } catch (err) {
+          console.error(`caught while loading node content`, err)
+          this.error = true
+        }
+      }
+      this.contentLoading = false
     },
 
     async onPopState(e) {
       console.log(e)
-      const { node = null } = this.nodesRegister[e.state.id]
+      const entry = this.nodesRegister[e.state.id]
+      const { node = null } = entry
       if (node !== null) {
         this.currentTreeNode = node
         this.atRoot = node.id === this.treeData.id
+        this.loadItemContent(entry)
       }
     },
 
@@ -254,6 +342,10 @@ export default {
 
           } catch(err) {
             console.error('failed to init Drive storage:', err)
+            this.error = true
+            this.errorMsg = 'Failed to load data from Google Drive. Try to reload the page.'
+
+            return
           }
         } else {
           this.treeData = JSON.parse(localTreeDataJSON)
@@ -262,15 +354,18 @@ export default {
 
         this.nodesRegister = flattenTree({ tree: this.treeData })
         const path = window.location.pathname.slice(1)
-        console.log('path:', path)
         this.currentTreeNode = this.treeData
         this.atRoot = true
         if (path !== '') {
-          const { node = null } = this.nodesRegister[path]
-          if (node !== null) {
-            this.currentTreeNode = node
-            if (node.id !== this.treeData.id) {
-              this.atRoot = false
+          console.log(this.nodesRegister[path])
+          const entry = this.nodesRegister[path]
+          if (entry !== undefined) {
+            const { node = null } = entry
+            if (node !== null) {
+              this.currentTreeNode = node
+              this.atRoot = node.id === this.treeData.id
+
+              this.loadItemContent(entry)
             }
           }
         }
@@ -280,8 +375,9 @@ export default {
         window.history.replaceState({ id }, id, `${id}`)
 
       } else {
-        this.config = null
         this.treeData = null
+        this.currentTreeNode = null
+        this.nodesRegister = null
       }
     }
   }
